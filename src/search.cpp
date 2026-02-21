@@ -1178,6 +1178,7 @@ moves_loop:  // When in check, search starts here
                 extension = -2;
         }
 
+        bool shuffling = !capture && is_shuffling(move, ss, pos);
         // Step 16. Make the move
         do_move(pos, move, st, givesCheck, ss);
 
@@ -1193,6 +1194,7 @@ moves_loop:  // When in check, search starts here
         r += 690;  // Base reduction offset to compensate for other tweaks
         r -= moveCount * 70;
         r -= std::abs(correctionValue) / 26878;
+        r += shuffling * 1024;
 
         // Increase reduction for cut nodes
         if (cutNode)
