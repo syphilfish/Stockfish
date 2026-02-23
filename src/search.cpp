@@ -1060,11 +1060,14 @@ moves_loop:  // When in check, search starts here
                 Piece capturedPiece = pos.piece_on(move.to_sq());
                 int   captHist = captureHistory[movedPiece][move.to_sq()][type_of(capturedPiece)];
 
+                const int pawnHist = sharedHistory.pawn_entry(pos)[movedPiece][move.to_sq()];
+                const int tactHist = captHist + std::clamp(pawnHist, -4096, 4096) / 2;
+
                 // Futility pruning for captures
                 if (!givesCheck && lmrDepth < 7)
                 {
                     Value futilityValue = ss->staticEval + 235 + 211 * lmrDepth
-                                        + PieceValue[capturedPiece] + 126 * captHist / 1024;
+                                        + PieceValue[capturedPiece] + 126 * tactHist / 1024;
 
                     if (futilityValue <= alpha)
                         continue;
@@ -1072,7 +1075,7 @@ moves_loop:  // When in check, search starts here
 
                 // SEE based pruning for captures and checks
                 // Avoid pruning sacrifices of our last piece for stalemate
-                int margin = std::max(185 * depth + captHist / 28, 0);
+                int margin = std::max(185 * depth + tactHist / 28, 0);
                 if ((alpha >= VALUE_DRAW || pos.non_pawn_material(us) != PieceValue[movedPiece])
                     && !pos.see_ge(move, -margin))
                     continue;
