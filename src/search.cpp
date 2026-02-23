@@ -1176,6 +1176,9 @@ moves_loop:  // When in check, search starts here
             // over current beta
             else if (cutNode)
                 extension = -2;
+
+            else if (allNode)
+                extension = -1;
         }
 
         // Step 16. Make the move
