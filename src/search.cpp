@@ -1551,7 +1551,13 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta)
     if (!PvNode && ttData.depth >= DEPTH_QS
         && is_valid(ttData.value)  // Can happen when !ttHit or when access race in probe()
         && (ttData.bound & (ttData.value >= beta ? BOUND_LOWER : BOUND_UPPER)))
+    {
+        if (repValue != VALUE_NONE && repValue > ttData.value)
+            return repValue;
+
         return ttData.value;
+    }
+
 
     // Step 4. Static evaluation of the position
     Value unadjustedStaticEval = VALUE_NONE;
@@ -1585,7 +1591,7 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta)
         }
 
         if (repValue != VALUE_NONE && repValue > bestValue)
-              bestValue = repValue;
+              bestValue = (3 * repValue + bestValue) / 4;
 
         // Stand pat. Return immediately if static value is at least beta
         if (bestValue >= beta)
