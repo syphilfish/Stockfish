@@ -1655,9 +1655,10 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta)
                 }
             }
 
-            // Skip non-captures
-            if (!capture)
+        // Skip non-captures, but allow TT move quiet checks through
+            if (!capture && !(move == ttData.move && givesCheck))
                 continue;
+
 
             // Do not search moves with bad enough SEE values
             if (!pos.see_ge(move, -72))
