@@ -1499,10 +1499,11 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta)
     assert(alpha >= -VALUE_INFINITE && alpha < beta && beta <= VALUE_INFINITE);
     assert(PvNode || (alpha == beta - 1));
 
+    Value repValue = VALUE_NONE;
     // Check if we have an upcoming move that draws by repetition
     if (alpha < VALUE_DRAW && pos.upcoming_repetition(ss->ply))
     {
-        alpha = value_draw(nodes);
+        repValue = alpha = value_draw(nodes);
         if (alpha >= beta)
             return alpha;
     }
@@ -1582,6 +1583,9 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta)
             ss->staticEval       = bestValue =
               to_corrected_static_eval(unadjustedStaticEval, correctionValue);
         }
+
+        if (repValue != VALUE_NONE && repValue > bestValue)
+              bestValue = repValue;
 
         // Stand pat. Return immediately if static value is at least beta
         if (bestValue >= beta)
