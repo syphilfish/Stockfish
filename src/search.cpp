@@ -883,6 +883,7 @@ Value Search::Worker::search(
         };
 
         if (!ss->ttPv && depth < 16 && eval - futility_margin(depth) >= beta && eval >= beta
+            && unadjustedStaticEval >= beta - 128
             && (!ttData.move || ttCapture) && !is_loss(beta) && !is_win(eval))
             return (2 * beta + eval) / 3;
     }
