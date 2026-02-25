@@ -1216,7 +1216,8 @@ moves_loop:  // When in check, search starts here
         else
             ss->statScore = 2 * mainHistory[us][move.raw()]
                           + (*contHist[0])[movedPiece][move.to_sq()]
-                          + (*contHist[1])[movedPiece][move.to_sq()];
+                          + (*contHist[1])[movedPiece][move.to_sq()]
+                          + (ss->ply < LOW_PLY_HISTORY_SIZE ? lowPlyHistory[ss->ply][move.raw()] - 100 : 0);
 
         // Decrease/increase reduction for moves with a good/bad history
         r -= ss->statScore * 454 / 4096;
