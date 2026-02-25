@@ -1221,6 +1221,10 @@ moves_loop:  // When in check, search starts here
         // Decrease/increase reduction for moves with a good/bad history
         r -= ss->statScore * 454 / 4096;
 
+        // Decrease reduction for recaptures (near-forced tactical responses)
+        if (priorCapture && capture && move.to_sq() == prevSq)
+            r -= 512;
+
         // Scale up reductions for expected ALL nodes
         if (allNode)
             r += r * 276 / (256 * depth + 254);
