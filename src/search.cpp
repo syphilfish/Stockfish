@@ -877,9 +877,14 @@ Value Search::Worker::search(
         auto futility_margin = [&](Depth d) {
             Value futilityMult = 77 - 22 * !ss->ttHit;
 
+            int agree = 0;
+            if (ss->ttHit && is_valid(ttData.value) && !is_decisive(ttData.value))
+                agree = std::clamp(140 - std::abs(int(ttData.value - eval)) / 5, -96, 96);
+
+
             return futilityMult * d
                  - (2661 * improving + 355 * opponentWorsening) * futilityMult / 1024  //
-                 + std::abs(correctionValue) / 176900;
+                 + std::abs(correctionValue) / 176900 - agree;
         };
 
         if (!ss->ttPv && depth < 16 && eval - futility_margin(depth) >= beta && eval >= beta
