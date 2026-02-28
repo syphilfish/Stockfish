@@ -1837,7 +1837,7 @@ void update_all_stats(const Position& pos,
     {
         update_quiet_histories(pos, ss, workerThread, bestMove, bonus * 810 / 1024);
 
-        int actualMalus = malus * 1159 / 1024;
+        int actualMalus = malus * (900 + 518 * (bestMove == ttMove)) / 1024;
         // Decrease stats for all non-best quiet moves
         for (Move move : quietsSearched)
         {
