@@ -1221,7 +1221,7 @@ moves_loop:  // When in check, search starts here
         // Decrease/increase reduction for moves with a good/bad history
         r -= ss->statScore * 454 / 4096;
 
-        r += std::clamp(alpha - bestValue, 0, 384 + 256 * !improving);
+        r += std::clamp(alpha - std::max(bestValue, ss->staticEval), 0, 512);
 
         // Scale up reductions for expected ALL nodes
         if (allNode)
