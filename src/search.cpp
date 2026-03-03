@@ -310,7 +310,9 @@ void Search::Worker::iterative_deepening() {
 
     int searchAgainCounter = 0;
 
-    lowPlyHistory.fill(100);
+    for (int i = 0; i < LOW_PLY_HISTORY_SIZE; i++)
+        for (int j = 0; j < UINT_16_HISTORY_SIZE; j++)
+            lowPlyHistory[i][j] = (lowPlyHistory[i][j] - 100) * 3 / 4 + 100;
 
     for (Color c : {WHITE, BLACK})
         for (int i = 0; i < UINT_16_HISTORY_SIZE; i++)
