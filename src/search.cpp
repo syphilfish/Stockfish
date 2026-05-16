@@ -362,10 +362,15 @@ bool Search::Worker::iterative_deepening() {
             selDepth = 0;
 
             // Reset aspiration window starting size
-            delta     = 5 + threadIdx % 8 + std::abs(rootMoves[pvIdx].meanSquaredScore) / 10588;
             Value avg = rootMoves[pvIdx].averageScore;
-            alpha     = std::max(avg - delta, -VALUE_INFINITE);
-            beta      = std::min(avg + delta, VALUE_INFINITE);
+            int   scoreTrend =
+            rootMoves[pvIdx].previousScore != -VALUE_INFINITE
+                ? std::clamp(int(rootMoves[pvIdx].previousScore - avg), -40, 40)
+                : 0;
+            delta = 5 + threadIdx % 8 + std::abs(rootMoves[pvIdx].meanSquaredScore) / 10588
+                + std::abs(scoreTrend) / 8;
+            alpha = std::max(avg - delta - std::max(scoreTrend, 0) / 2, -VALUE_INFINITE);
+            beta  = std::min(avg + delta - std::min(scoreTrend, 0) / 2, VALUE_INFINITE);
 
             // Adjust optimism based on root move's averageScore
             optimism[us]  = 137 * avg / (std::abs(avg) + 81);
