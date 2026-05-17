@@ -1263,6 +1263,11 @@ moves_loop:  // When in check, search starts here
         // Decrease/increase reduction for moves with a good/bad history
         r -= ss->statScore * 445 / 4096;
 
+        // Quiet fail-high odds shrink as alpha outpaces static evaluation.
+        if (!capture && !givesCheck && moveCount > 1 && !is_decisive(alpha))
+            r += 3 * std::clamp(int(alpha - ss->staticEval), -64, 96);
+
+
         // Scale up reductions for expected ALL nodes
         if (allNode)
             r += r * 272 / (256 * depth + 285);
