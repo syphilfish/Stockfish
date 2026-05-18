@@ -1137,10 +1137,11 @@ moves_loop:  // When in check, search starts here
             }
             else if (!ss->followPV || !PvNode)
             {
-                int dIndex  = std::min(int(depth), int(lmrDivisor.size())) - 1;
-                int history = (*contHist[0])[movedPiece][move.to_sq()]
-                            + (*contHist[1])[movedPiece][move.to_sq()]
-                            + sharedHistory.pawn_entry(pos)[movedPiece][move.to_sq()];
+                int dIndex = std::min(int(depth), int(lmrDivisor.size())) - 1;
+                int hist0 = (*contHist[0])[movedPiece][move.to_sq()];
+                int hist1 = (*contHist[1])[movedPiece][move.to_sq()];
+                int histP = sharedHistory.pawn_entry(pos)[movedPiece][move.to_sq()];
+                int history = hist0 + hist1 + histP;
 
                 // Continuation history based pruning
                 if (history < -4313 * depth)
@@ -1148,8 +1149,14 @@ moves_loop:  // When in check, search starts here
 
                 history += 64 * mainHistory[us][move.raw()] / 32;
 
+                // Penalize positive history only when continuation votes disagree.
+                int historySpread =
+                std::min(4096, (std::abs(hist0 - hist1) + std::abs(hist0 - histP)
+                               + std::abs(hist1 - histP))
+                                / 4);
+
                 // (*Scaler): Generally, lower divisors scale well
-                lmrDepth += history / lmrDivisor[dIndex];
+                lmrDepth += (history - historySpread * (history > 0)) / lmrDivisor[dIndex];
 
                 Value futilityValue = ss->staticEval + 40 + 138 * !bestMove + 117 * lmrDepth
                                     + 90 * (ss->staticEval > alpha);
