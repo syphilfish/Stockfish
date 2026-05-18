@@ -1262,6 +1262,10 @@ moves_loop:  // When in check, search starts here
         if (ttCapture)
             r += 1039;
 
+        // Recaptures are locally forcing and often underrepresented in history.
+        if (capture && prevSq == move.to_sq() && !is_decisive(alpha))
+            r -= 328 + 40 * (depth > 6);
+
         // Increase reduction if next ply has a lot of fail high
         if ((ss + 1)->cutoffCnt > 1)
             r += 236 + 1079 * ((ss + 1)->cutoffCnt > 2) + 1143 * allNode;
