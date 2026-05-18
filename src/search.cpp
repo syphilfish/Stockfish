@@ -1254,6 +1254,12 @@ moves_loop:  // When in check, search starts here
         r -= moveCount * 62;
         r -= std::abs(correctionValue) / 26131;
 
+        if (!ss->inCheck && !is_decisive(alpha))
+        {
+            int evalSlack = std::clamp(int(ss->staticEval - alpha), -432, 432);
+            r += evalSlack * (128 + 96 * allNode - 64 * PvNode) / 512;
+        }
+
         // Increase reduction for cut nodes
         if (cutNode)
             r += 3995 + 1059 * !ttData.move;
