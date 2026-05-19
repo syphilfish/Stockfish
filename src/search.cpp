@@ -1283,7 +1283,13 @@ moves_loop:  // When in check, search starts here
                           + (*contHist[1])[movedPiece][move.to_sq()];
 
         // Decrease/increase reduction for moves with a good/bad history
-        r -= ss->statScore * 445 / 4096;
+        int statScore = ss->statScore;
+        if (!capture)
+            statScore = std::clamp(statScore, -14592 - 128 * depth, 14592 + 128 * PvNode);
+        else
+            statScore = std::clamp(statScore, -12288, 18432);
+
+        r -= statScore * 445 / 4096;
 
         // Scale up reductions for expected ALL nodes
         if (allNode)
