@@ -1152,8 +1152,10 @@ moves_loop:  // When in check, search starts here
 
                 history += 64 * mainHistory[us][move.raw()] / 32;
 
+                int lmrHistory = std::clamp(history, -27000, 27000);
+
                 // (*Scaler): Generally, lower divisors scale well
-                lmrDepth += history / lmrDivisor[dIndex];
+                lmrDepth += lmrHistory / lmrDivisor[dIndex];
 
                 Value futilityValue = ss->staticEval + 40 + 138 * !bestMove + 117 * lmrDepth
                                     + 90 * (ss->staticEval > alpha);
