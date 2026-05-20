@@ -1255,7 +1255,12 @@ moves_loop:  // When in check, search starts here
                + (ttData.depth >= depth) * (923 + cutNode * 955);
 
         r += 714;  // Base reduction offset to compensate for other tweaks
-        r -= moveCount * 62;
+
+        int moveCountBias = moveCount * 62;
+        if (!PvNode && moveCount > 16)
+            moveCountBias = 16 * 62 + 48 * std::min(moveCount - 16, 16);
+        r -= moveCountBias;
+
         r -= std::abs(correctionValue) / 26131;
 
         // Increase reduction for cut nodes
