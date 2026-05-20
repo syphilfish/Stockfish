@@ -1274,6 +1274,20 @@ moves_loop:  // When in check, search starts here
         else if (move == ttData.move)
             r = std::max(-10, r - 2016 + 150 * cutNode);
 
+        // Decrease reduction for quiet moves that attack major pieces
+        if (!capture && !givesCheck && move.type_of() == NORMAL)
+        {
+            Piece    movedAfter  = pos.piece_on(move.to_sq());
+            Bitboard majorThreat = attacks_bb(movedAfter, move.to_sq(), pos.pieces())
+                          & (pos.pieces(pos.side_to_move(), QUEEN)
+                          | pos.pieces(pos.side_to_move(), ROOK));
+
+        if (majorThreat & pos.pieces(pos.side_to_move(), QUEEN))
+            r -= 642;
+        else if (majorThreat)
+            r -= 321;
+        }
+
         if (capture)
             ss->statScore = 809 * int(PieceValue[pos.captured_piece()]) / 128
                           + captureHistory[movedPiece][move.to_sq()][type_of(pos.captured_piece())];
