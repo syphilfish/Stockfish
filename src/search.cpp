@@ -1285,6 +1285,14 @@ moves_loop:  // When in check, search starts here
         // Decrease/increase reduction for moves with a good/bad history
         r -= ss->statScore * 445 / 4096;
 
+        // Decrease reduction for quiet moves attacking the enemy king ring
+        if (!capture && !givesCheck && move.type_of() == NORMAL)
+        {
+            Square ksq = pos.square<KING>(pos.side_to_move());
+            if (attacks_bb(movedPiece, move.to_sq(), pos.pieces()) & (attacks_bb<KING>(ksq) | ksq))
+                          r -= 384 + 128 * (depth > 5);
+        }
+
         // Scale up reductions for expected ALL nodes
         if (allNode)
             r += r * 272 / (256 * depth + 285);
