@@ -1285,6 +1285,14 @@ moves_loop:  // When in check, search starts here
         // Decrease/increase reduction for moves with a good/bad history
         r -= ss->statScore * 445 / 4096;
 
+        // Decrease reduction for advanced quiet pawn moves, especially in queenless play
+        if (!capture && !givesCheck && type_of(movedPiece) == PAWN && move.type_of() == NORMAL)
+        {
+            Rank rrank = relative_rank(us, move.to_sq());
+            if (rrank >= RANK_5)
+                          r -= 288 + 128 * !pos.pieces(QUEEN) + 96 * (rrank >= RANK_6);
+        }
+
         // Scale up reductions for expected ALL nodes
         if (allNode)
             r += r * 272 / (256 * depth + 285);
