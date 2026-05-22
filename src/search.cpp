@@ -956,7 +956,10 @@ Value Search::Worker::search(
         assert((ss - 1)->currentMove != Move::null());
 
         // Null move dynamic reduction based on depth
-        Depth R = 7 + depth / 3;
+        const bool zugRisk = !pos.pieces(QUEEN)
+                      && pos.non_pawn_material(us) <= RookValue + BishopValue
+                      && pos.non_pawn_material(~us) <= RookValue + BishopValue;
+        Depth R = 7 + depth / 3 - zugRisk;
         do_null_move(pos, st, ss);
 
         Value nullValue = -search<NonPV>(pos, ss + 1, -beta, -beta + 1, depth - R, false);
@@ -966,7 +969,7 @@ Value Search::Worker::search(
         // Do not return unproven mate or TB scores
         if (nullValue >= beta && !is_win(nullValue))
         {
-            if (nmpMinPly || depth < 16)
+            if (nmpMinPly || depth < 16 - 4 * zugRisk)
                 return nullValue;
 
             assert(!nmpMinPly);  // Recursive verification is not allowed
