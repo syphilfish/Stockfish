@@ -1890,7 +1890,13 @@ void update_all_stats(const Position& pos,
         for (Move move : quietsSearched)
         {
             actualMalus = actualMalus * 956 / 1024;
-            update_quiet_histories(pos, ss, workerThread, move, -actualMalus);
+            Piece movedQuiet = pos.moved_piece(move);
+            int   quietMalus = actualMalus;
+            if (type_of(movedQuiet) != PAWN
+               && (pos.attackers_to(move.to_sq(), pos.pieces() ^ move.from_sq())
+               & pos.pieces(~pos.side_to_move())))
+                   quietMalus = quietMalus * 1100 / 1024;
+            update_quiet_histories(pos, ss, workerThread, move, -quietMalus);
         }
     }
     else
