@@ -957,6 +957,8 @@ Value Search::Worker::search(
 
         // Null move dynamic reduction based on depth
         Depth R = 7 + depth / 3;
+        if (depth >= 10 && !pos.pieces(QUEEN) && pos.count<ALL_PIECES>() <= 8)
+                R--;
         do_null_move(pos, st, ss);
 
         Value nullValue = -search<NonPV>(pos, ss + 1, -beta, -beta + 1, depth - R, false);
