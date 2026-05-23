@@ -1258,6 +1258,10 @@ moves_loop:  // When in check, search starts here
         r -= moveCount * 62;
         r -= std::abs(correctionValue) / 26131;
 
+        // Quiet self-pinning blockers often encode only-move king geometry and tactics.
+        if (!capture && !givesCheck && (pos.blockers_for_king(us) & move.to_sq()))
+            r -= 575;
+
         // Increase reduction for cut nodes
         if (cutNode)
             r += 3995 + 1059 * !ttData.move;
