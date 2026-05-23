@@ -1016,6 +1016,10 @@ Value Search::Worker::search(
 
             assert(pos.capture_stage(move));
 
+            int seeMargin = std::min(384, 32 * int(depth));
+            if (!pos.see_ge(move, -seeMargin))
+                continue;
+
             do_move(pos, move, st, ss);
 
             // Perform a preliminary qsearch to verify that the move holds
