@@ -957,6 +957,16 @@ Value Search::Worker::search(
 
         // Null move dynamic reduction based on depth
         Depth R = 7 + depth / 3;
+
+        const bool nmpZugRisk =
+        depth >= 7 && pos.count<QUEEN>() == 0 && pos.count<ALL_PIECES>() <= 12
+        && pos.non_pawn_material(us) <= RookValue + BishopValue
+        && pos.non_pawn_material(~us) <= RookValue + BishopValue
+        && ss->staticEval < beta + 188 + 24 * depth;
+
+        if (nmpZugRisk)
+            R = std::max(Depth(1), R - 1 - (depth >= 12));
+
         do_null_move(pos, st, ss);
 
         Value nullValue = -search<NonPV>(pos, ss + 1, -beta, -beta + 1, depth - R, false);
