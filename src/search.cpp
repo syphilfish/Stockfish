@@ -1285,6 +1285,12 @@ moves_loop:  // When in check, search starts here
         // Decrease/increase reduction for moves with a good/bad history
         r -= ss->statScore * 445 / 4096;
 
+        // Quiet king/pawn moves in queenless endgames often decide by opposition or spare tempo.
+        if (!capture && !givesCheck && depth >= 3 && pos.count<ALL_PIECES>() <= 10
+            && pos.count<QUEEN>() == 0
+            && (type_of(movedPiece) == KING || type_of(movedPiece) == PAWN))
+               r -= 448 + 64 * (newDepth <= 3);
+
         // Scale up reductions for expected ALL nodes
         if (allNode)
             r += r * 272 / (256 * depth + 285);
