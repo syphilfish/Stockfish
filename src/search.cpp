@@ -1223,6 +1223,11 @@ moves_loop:  // When in check, search starts here
                 ttMoveHistory << -442 - 108 * depth;
                 return value;
             }
+            else
+            {
+            const bool singularZugRisk =
+              !ttCapture && pos.count<QUEEN>() == 0 && pos.count<ALL_PIECES>() <= 10
+              && pos.non_pawn_material(us) <= RookValue + BishopValue;
 
             // Negative extensions
             // If other moves failed high over (ttValue - margin) without the
@@ -1232,13 +1237,14 @@ moves_loop:  // When in check, search starts here
             // ttMove in favor of other moves based on some conditions:
 
             // If the ttMove is assumed to fail high over current beta
-            else if (ttData.value >= beta)
-                extension = -3;
+            if (ttData.value >= beta)
+                extension = singularZugRisk ? -2 : -3;
 
             // If we are on a cutNode but the ttMove is not assumed to fail high
             // over current beta
             else if (cutNode)
-                extension = -2;
+                extension = singularZugRisk ? -1 : -2;
+            }
         }
 
         uint64_t nodeCount = rootNode ? uint64_t(nodes) : 0;
