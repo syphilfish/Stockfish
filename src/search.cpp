@@ -955,8 +955,12 @@ Value Search::Worker::search(
     {
         assert((ss - 1)->currentMove != Move::null());
 
-        // Null move dynamic reduction based on depth
-        Depth R = 7 + depth / 3;
+        // Null move dynamic reduction: depth, eval surplus and TT corroboration
+        Depth R = 7 + depth / 3
+        + std::min(std::max(int(ss->staticEval - beta), 0) / 190, 2)
+        + (is_valid(ttData.value) && (ttData.bound & BOUND_LOWER)
+        && ttData.value >= beta + 200 && ttData.depth >= depth - 4
+        && !is_decisive(ttData.value));
         do_null_move(pos, st, ss);
 
         Value nullValue = -search<NonPV>(pos, ss + 1, -beta, -beta + 1, depth - R, false);
