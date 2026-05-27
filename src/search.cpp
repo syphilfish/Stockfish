@@ -1723,8 +1723,10 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta)
             if (!capture)
                 continue;
 
-            // Do not search moves with bad enough SEE values
-            if (!pos.see_ge(move, -74))
+            // Do not search moves with bad enough SEE values.
+            // Recaptures on the previous destination are tactically noisy, so give them a bounded grace.
+            int seeMargin = -74 - 18 * (move.to_sq() == prevSq);
+            if (!pos.see_ge(move, seeMargin))
                 continue;
         }
 
