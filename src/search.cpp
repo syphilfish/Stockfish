@@ -926,12 +926,14 @@ Value Search::Worker::search(
             sharedHistory.pawn_entry(pos)[pos.piece_on(prevSq)][prevSq] << evalDiff * 13;
     }
 
-
     // Step 7. Razoring
     // If eval is really low, skip search entirely and return the qsearch value.
     // For PvNodes, we must have a guard against mates being returned.
-    if (!PvNode && eval < alpha - 465 - 300 * depth * depth)
-        return qsearch<NonPV>(pos, ss, alpha, beta);
+    // When correction history is adjusting the eval heavily, the raw signal is less
+    // trustworthy, so widen the razoring margin (razor less) by a bounded amount.
+    if (!PvNode
+        && eval < alpha - 465 - 300 * depth * depth - std::min(std::abs(correctionValue) / 65536, 256))
+            return qsearch<NonPV>(pos, ss, alpha, beta);
 
     // Step 8. Futility pruning: child node
     // The depth condition is important for mate finding.
