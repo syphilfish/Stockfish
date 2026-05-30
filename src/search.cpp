@@ -147,12 +147,18 @@ void update_all_stats(const Position& pos,
                       Move            ttMove);
 
 bool is_shuffling(Move move, Stack* const ss, const Position& pos) {
-    if (pos.capture_stage(move) || pos.rule50_count() < 10)
+    if (!move.is_ok() || pos.capture_stage(move) || pos.rule50_count() < 10)
         return false;
-    if (pos.state()->pliesFromNull < 6 || ss->ply < 20)
+    if (pos.state()->pliesFromNull < 6 || ss->ply < 16)
         return false;
-    return move.from_sq() == (ss - 2)->currentMove.to_sq()
-        && (ss - 2)->currentMove.from_sq() == (ss - 4)->currentMove.to_sq();
+
+
+    const Move previousOwnMove = (ss - 2)->currentMove;
+    if (!previousOwnMove.is_ok())
+        return false;
+
+    return move.from_sq() == previousOwnMove.to_sq()
+        && move.to_sq() == previousOwnMove.from_sq();
 }
 
 }  // namespace
