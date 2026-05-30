@@ -1258,6 +1258,13 @@ moves_loop:  // When in check, search starts here
         r -= moveCount * 62;
         r -= std::abs(correctionValue) / 26131;
 
+        // Reduce less for the move that continues the previous iteration's
+        // principal variation: such moves most often remain best and benefit
+        // from a deeper search (a soft PV extension via the followPV flag).
+        if (ss->followPV && size_t(ss->ply) < lastIterationPV.size()
+        && move == lastIterationPV[ss->ply])
+            r -= 814;
+
         // Increase reduction for cut nodes
         if (cutNode)
             r += 3995 + 1059 * !ttData.move;
