@@ -809,6 +809,11 @@ Value Search::Worker::search(
         depth++;
     if (priorReduction >= 2 && depth >= 2 && ss->staticEval + (ss - 1)->staticEval > 173)
         depth--;
+    // Eval-acceleration hindsight: a previously reduced move that produced a
+    // sharp two-ply jump in our static evaluation was likely under-searched,
+    // so restore a ply of depth.
+    if (priorReduction >= 2 && ss->staticEval - (ss - 2)->staticEval > 300)
+        depth++;
 
     // At non-PV nodes we check for an early TT cutoff
     if (!PvNode && !excludedMove && ttData.depth > depth - (ttData.value <= beta)
