@@ -804,6 +804,11 @@ Value Search::Worker::search(
     improving         = ss->staticEval > (ss - 2)->staticEval;
     opponentWorsening = ss->staticEval > -(ss - 1)->staticEval;
 
+    // Track consecutive same-side plies our static evaluation has improved. A
+    // longer streak signals a position trending steadily in our favor, used
+    // below to reduce late moves more aggressively.
+    ss->improvingStreak = improving ? (ss - 2)->improvingStreak + 1 : 0;
+
     // Hindsight adjustment of reductions based on static evaluation difference.
     if (priorReduction >= 3 && !opponentWorsening)
         depth++;
@@ -1261,6 +1266,11 @@ moves_loop:  // When in check, search starts here
         // Increase reduction for cut nodes
         if (cutNode)
             r += 3995 + 1059 * !ttData.move;
+
+        // Increase reduction when our evaluation has improved over several
+        // consecutive plies: the position trends in our favor, so late moves
+        // are unlikely to overturn it and can be searched less deeply.
+        r += 70 * std::min(ss->improvingStreak, 6);
 
         // Increase reduction if ttMove is a capture
         if (ttCapture)
