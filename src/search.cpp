@@ -941,8 +941,19 @@ Value Search::Worker::search(
         Value futilityMult = interpolate(std::min(int(depth), 10), 1, 10, 40, 80);
         futilityMult -= 20 * !ss->ttHit;
 
+        // Second-order static-eval trend (acceleration) over our own last two
+        // turns. Positive acceleration means our advantage is growing steadily,
+        // making a fail-high more reliable, so we prune slightly more; negative
+        // acceleration is more cautious. Guarded against uninitialized plies.
+        int evalAccel =
+        is_valid((ss - 4)->staticEval)
+                             ? std::clamp(int(ss->staticEval - 2 * (ss - 2)->staticEval + (ss - 4)->staticEval),
+                             -150, 150)
+                             : 0;
+
         Value futilityMargin = futilityMult * depth
                              - (2934 * improving + 343 * opponentWorsening) * futilityMult / 1024
+                             - evalAccel * futilityMult / 256
                              + std::abs(correctionValue) / 182069;
 
         if (eval - futilityMargin >= beta)
