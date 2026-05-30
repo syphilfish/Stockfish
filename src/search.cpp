@@ -1101,6 +1101,11 @@ moves_loop:  // When in check, search starts here
 
         int r = reduction(improving, depth, moveCount, delta);
 
+        // Reversible non-tactical shuffles are usually low-tempo late moves
+        if (!PvNode && !ss->ttPv && !capture && !givesCheck && depth >= 3
+        && is_shuffling(move, ss, pos))
+            r += 777;
+
         // Increase reduction for ttPv nodes (*Scaler)
         // Larger values scale well
         if (ss->ttPv)
