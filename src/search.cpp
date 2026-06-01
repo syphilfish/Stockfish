@@ -1106,6 +1106,11 @@ moves_loop:  // When in check, search starts here
         if (ss->ttPv)
             r += 1006;
 
+        // Penalize moves that merely shuffle a piece back and forth: the A-B-A
+        // oscillation makes no progress, so spend less effort exploring it.
+        if (is_shuffling(move, ss, pos))
+            r += 1024;
+
         // Step 14. Pruning at shallow depths.
         // Depth conditions are important for mate finding.
         if (!rootNode && pos.non_pawn_material(us) && !is_loss(bestValue))
