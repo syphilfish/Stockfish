@@ -1158,6 +1158,13 @@ moves_loop:  // When in check, search starts here
                 Value futilityValue = ss->staticEval + 40 + 138 * !bestMove + 117 * lmrDepth
                                     + 90 * (ss->staticEval > alpha);
 
+                if (move != ttData.move && lmrDepth < 8 && pos.rule50_count() >= 10
+                    && pos.state()->pliesFromNull >= 6 && ss->ply >= 20
+                    && (ss - 2)->currentMove.is_ok()
+                    && move.from_sq() == (ss - 2)->currentMove.to_sq()
+                    && move.to_sq() == (ss - 2)->currentMove.from_sq())
+                            futilityValue -= 64 + 4 * std::min(pos.rule50_count(), 48);
+
                 // Futility pruning: parent node
                 // (*Scaler): Generally, more frequent futility pruning
                 // scales well
