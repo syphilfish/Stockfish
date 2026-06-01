@@ -1097,6 +1097,14 @@ moves_loop:  // When in check, search starts here
         // Calculate new depth for this move
         newDepth = depth - 1;
 
+        if (!rootNode && !PvNode && moveCount > 1 && move != ttData.move && depth >= 4
+            && !capture && !givesCheck && pos.rule50_count() >= 10
+            && pos.state()->pliesFromNull >= 6 && ss->ply >= 20
+            && (ss - 2)->currentMove.is_ok()
+            && move.from_sq() == (ss - 2)->currentMove.to_sq()
+            && move.to_sq() == (ss - 2)->currentMove.from_sq())
+              newDepth--;
+
         int delta = beta - alpha;
 
         int r = reduction(improving, depth, moveCount, delta);
