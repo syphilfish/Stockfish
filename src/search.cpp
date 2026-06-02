@@ -1158,6 +1158,10 @@ moves_loop:  // When in check, search starts here
                 Value futilityValue = ss->staticEval + 40 + 138 * !bestMove + 117 * lmrDepth
                                     + 90 * (ss->staticEval > alpha);
 
+                if (!ss->ttPv && move.type_of() == NORMAL && type_of(movedPiece) != PAWN
+                    && type_of(movedPiece) != KING && pos.rule50_count() >= 10)
+                        futilityValue -= 6 * std::min(pos.rule50_count() - 9, 24);
+
                 // Futility pruning: parent node
                 // (*Scaler): Generally, more frequent futility pruning
                 // scales well
