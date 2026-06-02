@@ -1246,6 +1246,16 @@ moves_loop:  // When in check, search starts here
         // Step 16. Make the move
         do_move(pos, move, st, givesCheck, ss);
 
+        //Assumption: opponent draw threats need search. Repetition gives a safe draw cap.
+        if (!PvNode && !rootNode && !capture && !givesCheck && alpha >= VALUE_DRAW + 1
+            && pos.rule50_count() >= 8 && pos.upcoming_repetition((ss + 1)->ply))
+        {
+                Value drawValue = value_draw(nodes);
+                bestValue       = std::max(bestValue, drawValue);
+                undo_move(pos, move);
+                continue;
+        }
+
         // Add extension to new depth
         newDepth += extension;
 
