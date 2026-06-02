@@ -1241,6 +1241,10 @@ moves_loop:  // When in check, search starts here
                 extension = -2;
         }
 
+        if (!rootNode && !PvNode && !capture && !givesCheck && depth >= 3
+            && move.type_of() == NORMAL && is_shuffling(move, ss, pos))
+            r += 768 + 384 * cutNode + 32 * std::min(pos.rule50_count() - 10, 24);
+
         uint64_t nodeCount = rootNode ? uint64_t(nodes) : 0;
 
         // Step 16. Make the move
