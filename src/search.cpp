@@ -1290,6 +1290,11 @@ moves_loop:  // When in check, search starts here
         if (ttCapture)
             r += 1039;
 
+        // Scale up reductions as the fifty-move counter of the child position
+        // grows. Reversible lines compound this damping, while counter-resetting
+        // moves are unaffected since the child restarts the counter at zero.
+            r += std::clamp(8 * (pos.rule50_count() - 14), 0, 384);
+
         // Increase reduction if next ply has a lot of fail high
         if ((ss + 1)->cutoffCnt > 1)
             r += 236 + 1079 * ((ss + 1)->cutoffCnt > 2) + 1143 * allNode;
