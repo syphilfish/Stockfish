@@ -1978,6 +1978,12 @@ void update_continuation_histories(Stack* ss, Piece pc, Square to, int bonus) {
 void update_quiet_histories(
   const Position& pos, Stack* ss, Search::Worker& workerThread, Move move, int bonus) {
 
+    // While shuffling, outcomes of reversible quiet moves are unreliable
+    // signals; damp their history updates to avoid entrenching no-progress
+    // moves in the shared ordering tables.
+    if (pos.rule50_count() > 24 && type_of(pos.moved_piece(move)) != PAWN)
+        bonus = bonus * 583 / 1024;
+
     Color us = pos.side_to_move();
     workerThread.mainHistory[us][move.raw()] << bonus;  // Untuned to prevent duplicate effort
 
