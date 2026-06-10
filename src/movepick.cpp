@@ -239,6 +239,11 @@ ExtMove* MovePicker::score(const MoveList<Type>& ml) {
             // bonus for checks
             m.value += ((pos.check_squares(pt) & to) && pos.see_ge(m, -75)) * 16384;
 
+            // when shuffling, prefer irreversible pawn moves so that potential
+            // breakthroughs are searched before reversible shuffling moves
+            if (pt == PAWN && pos.rule50_count() > 11)
+                m.value += 28 * (pos.rule50_count() < 100 ? pos.rule50_count() - 11 : 88);
+
             // penalty for moving to a square threatened by a lesser piece
             // or bonus for escaping an attack by a lesser piece.
             int v = 20 * (bool(threatByLesser[pt] & from) - bool(threatByLesser[pt] & to));
