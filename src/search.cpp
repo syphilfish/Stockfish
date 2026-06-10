@@ -1134,8 +1134,11 @@ moves_loop:  // When in check, search starts here
         // Depth conditions are important for mate finding.
         if (!rootNode && pos.non_pawn_material(us) && !is_loss(bestValue))
         {
-            // Skip quiet moves if movecount exceeds our threshold
-            if (moveCount >= (3 + depth * depth) / (2 - improving))
+            // Skip quiet moves if movecount exceeds our threshold, sooner when
+            // the fifty-move counter is high and most reversible continuations
+            // transpose without making progress
+            if (moveCount >= (3 + depth * depth) / (2 - improving)
+            - (pos.rule50_count() > 24) - (pos.rule50_count() > 48))
                 mp.skip_quiet_moves();
 
             // Reduced depth of the next LMR search
