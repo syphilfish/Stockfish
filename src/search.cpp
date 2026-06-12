@@ -835,9 +835,10 @@ Value Search::Worker::search(
         depth++;
     if (priorReduction >= 2 && depth >= 2 && ss->staticEval + (ss - 1)->staticEval > 173)
         depth--;
-
-    // At non-PV nodes we check for an early TT cutoff
-    if (!PvNode && !excludedMove && ttData.depth > depth - (ttData.value <= beta)
+    // At non-PV nodes we check for an early TT cutoff. With a high fifty-move
+    // counter the tree is transposition-dense, so accept one draft less there.
+    if (!PvNode && !excludedMove
+        && ttData.depth > depth - (ttData.value <= beta) - (pos.rule50_count() > 27)
         && is_valid(ttData.value)  // Can happen when !ttHit or when access race in probe()
         && (ttData.bound & (ttData.value >= beta ? BOUND_LOWER : BOUND_UPPER))
         && (cutNode == (ttData.value >= beta) || depth > 4))
