@@ -836,6 +836,14 @@ Value Search::Worker::search(
     if (priorReduction >= 2 && depth >= 2 && ss->staticEval + (ss - 1)->staticEval > 173)
         depth--;
 
+    // Plateau reduction: with a high fifty-move counter and static evaluation
+    // stagnant across the last four (necessarily reversible) plies, this node
+    // sits in a shuffling plateau; trim one ply of depth.
+    if (depth >= 8 && !ss->inCheck && pos.rule50_count() > 19
+    && std::abs(ss->staticEval - (ss - 2)->staticEval) < 11
+    && std::abs(ss->staticEval - (ss - 4)->staticEval) < 11)
+        depth--;
+
     // At non-PV nodes we check for an early TT cutoff
     if (!PvNode && !excludedMove && ttData.depth > depth - (ttData.value <= beta)
         && is_valid(ttData.value)  // Can happen when !ttHit or when access race in probe()
