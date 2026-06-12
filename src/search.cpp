@@ -1265,6 +1265,13 @@ moves_loop:  // When in check, search starts here
                 extension = -2;
         }
 
+        // Breakthrough extension: with a high fifty-move counter, moves that
+        // reset it are the only route to progress, so extend them. This is
+        // self-limiting because the child subtree restarts the counter at zero.
+        else if (!rootNode && !excludedMove && depth >= 6 && pos.rule50_count() > 27
+             && (capture || type_of(movedPiece) == PAWN))
+                extension = 1;
+
         u64 nodeCount = rootNode ? u64(nodes) : 0;
 
         // Step 16. Make the move
