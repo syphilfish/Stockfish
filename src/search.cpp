@@ -1913,7 +1913,13 @@ void update_all_stats(const Position& pos,
 
     if (!pos.capture_stage(bestMove))
     {
-        update_quiet_histories(pos, ss, workerThread, bestMove, bonus * 824 / 1024);
+        // Do not let an oscillating best-quiet inflate its own history, which
+        // would re-promote it next visit and harden the shuffle loop.
+        int bestQuietBonus = bonus * 824 / 1024;
+        if (is_shuffling(bestMove, ss, pos))
+            bestQuietBonus -= bestQuietBonus / 2;
+        update_quiet_histories(pos, ss, workerThread, bestMove, bestQuietBonus);
+
 
         int actualMalus = malus * 1136 / 1024;
         // Decrease stats for all non-best quiet moves
