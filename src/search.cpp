@@ -158,6 +158,27 @@ bool is_shuffling(Move move, Stack* const ss, const Position& pos) {
         && (ss - 2)->currentMove.from_sq() == (ss - 4)->currentMove.to_sq();
 }
 
+// True when one piece has played X-Y, Y-X and now proposes X-Y again.
+// All three moves are guarded as normal reversible moves before accessing squares.
+bool is_cycle_replay(Move move, Stack* const ss, const Position& pos) {
+if (move.type_of() != NORMAL || pos.capture_stage(move) || pos.rule50_count() < 10)
+return false;
+if (pos.state()->pliesFromNull < 6 || ss->ply < 6)
+return false;
+
+
+const Move last    = (ss - 2)->currentMove;
+const Move earlier = (ss - 4)->currentMove;
+
+if (!last.is_ok() || !earlier.is_ok() || last == Move::null()
+    || earlier == Move::null() || last.type_of() != NORMAL
+    || earlier.type_of() != NORMAL)
+    return false;
+
+return last.from_sq() == earlier.to_sq() && last.to_sq() == earlier.from_sq()
+    && move.from_sq() == earlier.from_sq() && move.to_sq() == earlier.to_sq();
+}
+
 }  // namespace
 
 Search::Worker::Worker(SharedState&                    sharedState,
@@ -1951,7 +1972,15 @@ void update_all_stats(const Position& pos,
         {
             actualMalus = actualMalus * 956 / 1024;
             update_quiet_histories(pos, ss, workerThread, move, -actualMalus);
+
+            // Apply the extra signal only to continuation history, so a replay
+            // remains available in unrelated positions where it may be useful.
+            if (is_cycle_replay(move, ss, pos))
+              update_continuation_histories(
+                ss, pos.moved_piece(move), move.to_sq(),
+                -384 - 16 * std::min(pos.rule50_count(), 32));
         }
+
     }
     else
     {
