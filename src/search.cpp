@@ -158,6 +158,22 @@ bool is_shuffling(Move move, Stack* const ss, const Position& pos) {
         && (ss - 2)->currentMove.from_sq() == (ss - 4)->currentMove.to_sq();
 }
 
+// Detect an exact reversal of our preceding move. Unlike is_shuffling(), this
+// signal is narrow enough to alter LMR while retaining fail-high verification.
+bool is_immediate_reversal(Move move, Stack* const ss, const Position& pos) {
+if (move.type_of() != NORMAL || pos.capture_stage(move) || pos.rule50_count() < 8)
+return false;
+if (pos.state()->pliesFromNull < 4 || ss->ply < 6)
+return false;
+
+
+const Move previous = (ss - 2)->currentMove;
+if (!previous.is_ok() || previous == Move::null() || previous.type_of() != NORMAL)
+    return false;
+
+return move.from_sq() == previous.to_sq() && move.to_sq() == previous.from_sq();
+}
+
 }  // namespace
 
 Search::Worker::Worker(SharedState&                    sharedState,
@@ -1133,6 +1149,8 @@ moves_loop:  // When in check, search starts here
         capture    = pos.capture_stage(move);
         movedPiece = pos.moved_piece(move);
         givesCheck = pos.gives_check(move);
+        const bool reversalMove =
+        !rootNode && !capture && !givesCheck && is_immediate_reversal(move, ss, pos);
 
         // Calculate new depth for this move
         newDepth = depth - 1;
@@ -1140,6 +1158,13 @@ moves_loop:  // When in check, search starts here
         int delta = beta - alpha;
 
         int r = reduction(improving, depth, moveCount, delta);
+
+        // A non-PV reversal in an evaluation plateau is unlikely to be the
+        // breakthrough. A reduced search still verifies every fail-high.
+        if (reversalMove && !PvNode && moveCount > 1 && !ss->inCheck
+        && is_valid(ss->staticEval) && is_valid((ss - 2)->staticEval)
+        && std::abs(int(ss->staticEval - (ss - 2)->staticEval)) <= 48)
+            r += 768 + 24 * std::min(pos.rule50_count(), 24);
 
         // Increase reduction for ttPv nodes (*Scaler)
         // Larger values scale well
