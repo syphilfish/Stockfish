@@ -874,7 +874,11 @@ Value Search::Worker::search(
         // For high rule50 counts don't produce transposition table cutoffs.
         if (pos.rule50_count() < 96)
         {
-            if (depth >= 7 && ttData.move && pos.pseudo_legal(ttData.move) && pos.legal(ttData.move)
+            // At a node reached through a reversible cycle, verify shallow TT
+            // cutoffs as well. A missing child entry is not confirmation there.
+            const bool repeatedPath = pos.rule50_count() >= 8 && pos.has_repeated();
+
+            if ((depth >= 7 || repeatedPath) && ttData.move && pos.pseudo_legal(ttData.move) && pos.legal(ttData.move)
                 && !is_decisive(ttData.value))
             {
                 pos.do_move(ttData.move, st);
@@ -882,11 +886,12 @@ Value Search::Worker::search(
                 auto [ttHitNext, ttDataNext, ttWriterNext] = tt.probe(nextPosKey);
                 pos.undo_move(ttData.move);
 
-                // Check that the ttValue after the tt move would also trigger a cutoff
-                if (!is_valid(ttDataNext.value))
+                // Check that the ttValue after the tt move would also trigger a cutoff.
+                if (is_valid(ttDataNext.value)
+                    && (ttData.value >= beta) == (-ttDataNext.value >= beta))
                     return ttData.value;
 
-                if ((ttData.value >= beta) == (-ttDataNext.value >= beta))
+                if (!repeatedPath && !is_valid(ttDataNext.value))
                     return ttData.value;
             }
             else
