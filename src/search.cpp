@@ -1150,9 +1150,20 @@ moves_loop:  // When in check, search starts here
         // Depth conditions are important for mate finding.
         if (!rootNode && pos.non_pawn_material(us) && !is_loss(bestValue))
         {
-            // Skip quiet moves if movecount exceeds our threshold
-            if (moveCount >= (3 + depth * depth) / (2 - improving))
-                mp.skip_quiet_moves();
+            // In pawn-rich positions after a long reversible sequence, retain late
+            // pawn pushes while pruning late reversible quiets individually.
+            const int  quietMoveLimit = (3 + depth * depth) / (2 - improving);
+            const bool seekPawnBreak  = pos.rule50_count() >= 10
+                                && pos.rule50_count() <= 40
+                                && pos.count<PAWN>() >= 6;
+
+            if (moveCount >= quietMoveLimit)
+            {
+                if (!seekPawnBreak)
+                   mp.skip_quiet_moves();
+                else if (!capture && !givesCheck && type_of(movedPiece) != PAWN)
+                   continue;
+            }
 
             // Reduced depth of the next LMR search
             int lmrDepth = newDepth - r / 1024;
