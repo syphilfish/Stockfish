@@ -1525,6 +1525,10 @@ moves_loop:  // When in check, search starts here
 
     assert(moveCount || !ss->inCheck || excludedMove || !MoveList<LEGAL>(pos).size());
 
+    // Search results below a reversible cycle depend partly on path history,
+    // which is absent from the global move and correction history keys.
+    const bool repeatedPath = pos.rule50_count() >= 8 && pos.has_repeated();
+
     // Adjust best value for fail high cases
     if (bestValue >= beta && !is_decisive(bestValue) && !is_decisive(alpha))
         bestValue = (bestValue * depth + beta) / (depth + 1);
@@ -1534,7 +1538,7 @@ moves_loop:  // When in check, search starts here
 
     // If there is a move that produces search value greater than alpha,
     // we update the stats of searched moves.
-    else if (bestMove)
+    else if (bestMove && !repeatedPath)
     {
         update_all_stats(pos, ss, *this, bestMove, prevSq, quietsSearched, capturesSearched, depth,
                          ttData.move, PvNode);
@@ -1543,7 +1547,7 @@ moves_loop:  // When in check, search starts here
     }
 
     // Bonus for prior quiet countermove that caused the fail low
-    else if (!priorCapture && prevSq != SQ_NONE)
+    else if (!repeatedPath && !priorCapture && prevSq != SQ_NONE)
     {
         int bonusScale = -245;
         bonusScale -= (ss - 1)->statScore / 98;
@@ -1567,7 +1571,7 @@ moves_loop:  // When in check, search starts here
     }
 
     // Bonus for prior capture countermove that caused the fail low
-    else if (priorCapture && prevSq != SQ_NONE)
+    else if (!repeatedPath && priorCapture && prevSq != SQ_NONE)
     {
         Piece capturedPiece = pos.captured_piece();
         assert(capturedPiece != NO_PIECE);
@@ -1594,7 +1598,7 @@ moves_loop:  // When in check, search starts here
 
     // Adjust correction history if the best move is not a capture
     // and the error direction matches whether we are above/below bounds.
-    if (!ss->inCheck && !(bestMove && pos.capture(bestMove))
+    if (!repeatedPath && !ss->inCheck && !(bestMove && pos.capture(bestMove))
         && (bestValue > ss->staticEval) == bool(bestMove))
     {
         auto bonus =
