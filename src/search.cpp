@@ -1142,6 +1142,10 @@ moves_loop:  // When in check, search starts here
 
         int r = reduction(improving, depth, moveCount, delta);
 
+        // Detect back-and-forth maneuvering before making the move; must be
+        // evaluated on the parent position. Used below to cut shuffle loops.
+        const bool shuffling = is_shuffling(move, ss, pos);
+
         // Increase reduction for ttPv nodes (*Scaler)
         // Larger values scale well
         if (ss->ttPv)
@@ -1298,6 +1302,11 @@ moves_loop:  // When in check, search starts here
         r += 697;  // Base reduction offset to compensate for other tweaks
         r -= moveCount * 65;
         r -= std::abs(correctionValue) / 26310;
+
+        // Shuffling moves in high rule50 zones almost never contain the
+        // breakthrough; deep searches there mostly burn compute.
+        if (shuffling)
+            r += 1180;
 
         // Increase reduction for cut nodes
         if (cutNode)
