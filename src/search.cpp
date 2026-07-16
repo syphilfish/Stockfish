@@ -1142,6 +1142,12 @@ moves_loop:  // When in check, search starts here
 
         int r = reduction(improving, depth, moveCount, delta);
 
+        // Pawn breaks are the only way to force progress while the 50-move
+        // clock runs down. Evaluate on the parent position before the clock
+        // resets on the child.
+        const int  preRule50 = pos.rule50_count();
+        const bool pawnBreak = !capture && type_of(movedPiece) == PAWN && preRule50 >= 25;
+
         // Increase reduction for ttPv nodes (*Scaler)
         // Larger values scale well
         if (ss->ttPv)
@@ -1298,6 +1304,11 @@ moves_loop:  // When in check, search starts here
         r += 697;  // Base reduction offset to compensate for other tweaks
         r -= moveCount * 65;
         r -= std::abs(correctionValue) / 26310;
+
+        // Give pawn progress moves extra depth relative to reversible
+        // maneuvering in advanced rule50 states, finding breakthroughs sooner.
+        if (pawnBreak)
+            r -= 360 + 8 * std::min(preRule50, 80);
 
         // Increase reduction for cut nodes
         if (cutNode)
