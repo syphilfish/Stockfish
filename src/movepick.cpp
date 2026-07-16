@@ -158,7 +158,9 @@ MovePicker::MovePicker(const Position&              p,
                        const CapturePieceToHistory* cph,
                        const PieceToHistory**       ch,
                        const SharedHistories*       sh,
-                       int                          pl) :
+                       int                          pl,
+                       Square                       tbFrom,
+                       Square                       tbTo) :
     pos(p),
     mainHistory(mh),
     lowPlyHistory(lph),
@@ -167,7 +169,9 @@ MovePicker::MovePicker(const Position&              p,
     sharedHistory(sh),
     ttMove(ttm),
     depth(d),
-    ply(pl) {
+    ply(pl),
+    takebackFrom(tbFrom),
+    takebackTo(tbTo) {
 
     if (pos.checkers())
         stage = EVASION_TT + !(ttm && pos.pseudo_legal(ttm));
@@ -235,6 +239,11 @@ ExtMove* MovePicker::score(const MoveList<Type>& ml) {
             m.value += (*continuationHistory[2])[pc][to];
             m.value += (*continuationHistory[3])[pc][to];
             m.value += (*continuationHistory[5])[pc][to];
+
+            // Defer take-backs in advanced rule50 states: moving a piece back to
+            // the square it came from two plies ago is usually pointless shuffling.
+            if (pos.rule50_count() >= 16 && from == takebackTo && to == takebackFrom)
+                m.value -= 9000;
 
             // bonus for checks
             m.value += ((pos.check_squares(pt) & to) && pos.see_ge(m, -75)) * 16384;

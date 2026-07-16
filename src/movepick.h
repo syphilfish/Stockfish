@@ -46,7 +46,9 @@ class MovePicker {
                const CapturePieceToHistory*,
                const PieceToHistory**,
                const SharedHistories*,
-               int);
+               int,
+               Square takebackFrom = SQ_NONE,
+               Square takebackTo   = SQ_NONE);
     MovePicker(const Position&, Move, int, const CapturePieceToHistory*);
     Move next_move();
     void skip_quiet_moves();
@@ -69,6 +71,8 @@ class MovePicker {
     int                          threshold;
     Depth                        depth;
     int                          ply;
+    Square                       takebackFrom = SQ_NONE;
+    Square                       takebackTo   = SQ_NONE;
     bool                         skipQuiets = false;
     ExtMove                      moves[MAX_MOVES];
 };

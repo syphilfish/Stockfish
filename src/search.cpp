@@ -1093,9 +1093,11 @@ moves_loop:  // When in check, search starts here
       (ss - 1)->continuationHistory, (ss - 2)->continuationHistory, (ss - 3)->continuationHistory,
       (ss - 4)->continuationHistory, (ss - 5)->continuationHistory, (ss - 6)->continuationHistory};
 
-
+    const Move ourPrevMove = (ss - 2)->currentMove;
     MovePicker mp(pos, ttData.move, depth, &mainHistory, &lowPlyHistory, &captureHistory, contHist,
-                  &sharedHistory, ss->ply);
+              &sharedHistory, ss->ply,
+              ourPrevMove.is_ok() ? ourPrevMove.from_sq() : SQ_NONE,
+              ourPrevMove.is_ok() ? ourPrevMove.to_sq() : SQ_NONE);
 
     value = bestValue;
 
