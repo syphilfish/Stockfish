@@ -1094,6 +1094,14 @@ moves_loop:  // When in check, search starts here
       (ss - 1)->continuationHistory, (ss - 2)->continuationHistory, (ss - 3)->continuationHistory,
       (ss - 4)->continuationHistory, (ss - 5)->continuationHistory, (ss - 6)->continuationHistory};
 
+// A stalled node: a long reversible phase (rule50_count() is reset by captures
+// and pawn moves only) whose static evaluation has not moved on either of our
+// last two turns. Nothing is happening here, so the quiet tail of the move
+// list deserves even less of the search budget than usual.
+const bool stalled = !ss->inCheck && ss->ply >= 6 && pos.rule50_count() >= 16
+                  && is_valid((ss - 2)->staticEval) && is_valid((ss - 4)->staticEval)
+                  && std::abs(ss->staticEval - (ss - 2)->staticEval) <= 16
+                  && std::abs(ss->staticEval - (ss - 4)->staticEval) <= 16;
 
     MovePicker mp(pos, ttData.move, depth, &mainHistory, &lowPlyHistory, &captureHistory, contHist,
                   &sharedHistory, ss->ply);
@@ -1152,8 +1160,9 @@ moves_loop:  // When in check, search starts here
         // Depth conditions are important for mate finding.
         if (!rootNode && pos.non_pawn_material(us) && !is_loss(bestValue))
         {
-            // Skip quiet moves if movecount exceeds our threshold
-            if (moveCount >= (3 + depth * depth) / (2 - improving))
+            // Skip quiet moves if movecount exceeds our threshold. A stalled node
+            // does not earn the improving bonus: its eval rise is shuffling noise.
+            if (moveCount >= (3 + depth * depth) / (2 - (improving && !stalled)))
                 mp.skip_quiet_moves();
 
             // Reduced depth of the next LMR search
@@ -1188,8 +1197,8 @@ moves_loop:  // When in check, search starts here
                             + (*contHist[1])[movedPiece][move.to_sq()]
                             + sharedHistory.pawn_entry(pos)[movedPiece][move.to_sq()];
 
-                // Continuation history based pruning
-                if (history < -4136 * depth)
+                // Continuation history based pruning, more eager in stalled nodes
+                if (history < (stalled ? -3100 : -4136) * depth)
                     continue;
 
                 history += 69 * mainHistory[us][move.raw()] / 32;
