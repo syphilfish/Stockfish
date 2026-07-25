@@ -1102,6 +1102,9 @@ moves_loop:  // When in check, search starts here
 
     int moveCount = 0;
 
+    // Moves actually searched at this node, i.e. not pruned before the search.
+    int searchedCnt = 0;
+
     // Step 13. Loop through all pseudo-legal moves until no moves remain
     // or a beta cutoff occurs.
     while ((move = mp.next_move()) != Move::none())
@@ -1332,6 +1335,13 @@ moves_loop:  // When in check, search starts here
         if (allNode)
             r += r * 276 / (256 * depth + 268);
 
+        // Sibling evidence. cutNode and allNode are predictions made before any
+        // child was searched. Once several of the best ordered moves have come back
+        // clearly short of alpha, we have measured what those flags only guess: this
+        // node fails low, so the remaining, worse ordered moves need less depth.
+        if (!PvNode && searchedCnt >= 3 && !is_decisive(bestValue) && bestValue < alpha - 60)
+            r += 512 + 512 * (bestValue < alpha - 240);
+
         // Step 17. Late moves reduction / extension (LMR)
         if (depth >= 2 && moveCount > 1)
         {
@@ -1396,6 +1406,7 @@ moves_loop:  // When in check, search starts here
 
         // Step 19. Undo move
         undo_move(pos, move);
+        ++searchedCnt;
 
         assert(value > -VALUE_INFINITE && value < VALUE_INFINITE);
 
