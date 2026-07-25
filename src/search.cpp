@@ -848,6 +848,20 @@ Value Search::Worker::search(
     improving         = ss->staticEval > (ss - 2)->staticEval;
     opponentWorsening = ss->staticEval > -(ss - 1)->staticEval;
 
+    // Eval::evaluate damps the evaluation linearly towards a draw as the fifty move
+    // counter grows. Along a reversible line this damping alone lowers the static eval
+    // of the side that is ahead and raises the one of the side that is behind, so the
+    // worse side always looks improving and the better side never does, exactly where
+    // the search is shuffling. Undo the two (resp. one) plies of extra damping that
+    // separate this node from (ss - 2) (resp. (ss - 1)).
+    if (!ss->inCheck && pos.rule50_count() >= 12)
+    {
+    int drift = int(ss->staticEval) / (199 - std::min(pos.rule50_count(), 98));
+
+    improving         = ss->staticEval + 2 * drift > (ss - 2)->staticEval;
+    opponentWorsening = ss->staticEval + drift > -(ss - 1)->staticEval;
+    }
+
     // Hindsight adjustment of reductions based on static evaluation difference.
     if (priorReduction >= 3 && !opponentWorsening)
         depth++;
