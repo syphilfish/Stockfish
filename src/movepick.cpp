@@ -158,7 +158,8 @@ MovePicker::MovePicker(const Position&              p,
                        const CapturePieceToHistory* cph,
                        const PieceToHistory**       ch,
                        const SharedHistories*       sh,
-                       int                          pl) :
+                       int                          pl,
+                       Move                         pm) :
     pos(p),
     mainHistory(mh),
     lowPlyHistory(lph),
@@ -166,6 +167,7 @@ MovePicker::MovePicker(const Position&              p,
     continuationHistory(ch),
     sharedHistory(sh),
     ttMove(ttm),
+    prevMove(pm),
     depth(d),
     ply(pl) {
 
@@ -208,6 +210,14 @@ ExtMove* MovePicker::score(const MoveList<Type>& ml) {
         threatByLesser[QUEEN] = pos.attacks_by<ROOK>(~us) | threatByLesser[ROOK];
         threatByLesser[KING]  = 0;
     }
+    // Strength of the shuffling signal: how deep we already are into a sequence
+    // without a capture or a pawn move, the only irreversible, progressing moves.
+    [[maybe_unused]] int stall = 0;
+    if constexpr (Type == QUIETS)
+    {
+    stall = pos.rule50_count() - 12;
+    stall = stall < 0 ? 0 : (stall > 24 ? 24 : stall);
+    }
 
     ExtMove* it = cur;
     for (auto move : ml)
@@ -244,6 +254,16 @@ ExtMove* MovePicker::score(const MoveList<Type>& ml) {
             int v = 20 * (bool(threatByLesser[pt] & from) - bool(threatByLesser[pt] & to));
             m.value += PieceValue[pt] * v;
 
+            // shuffling: promote pawn moves, the only quiet moves that cannot be
+            // undone, and demote moves that touch the piece we just moved, above all
+            // those putting it straight back on the square it came from
+            if (stall)
+            {
+                if (pt == PAWN)
+                    m.value += 128 * stall;
+                else if (prevMove.is_ok() && from == prevMove.to_sq())
+                    m.value -= (to == prevMove.from_sq() ? 192 : 96) * stall;
+            }
 
             if (ply < LOW_PLY_HISTORY_SIZE)
                 m.value += 8 * (*lowPlyHistory)[ply][m.raw()] / (1 + ply);
