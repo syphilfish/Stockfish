@@ -199,6 +199,7 @@ ExtMove* MovePicker::score(const MoveList<Type>& ml) {
     Color us = pos.side_to_move();
 
     [[maybe_unused]] Bitboard threatByLesser[KING + 1];
+    [[maybe_unused]] int      leverBonus = 0;
     if constexpr (Type == QUIETS)
     {
         threatByLesser[PAWN]   = 0;
@@ -207,6 +208,13 @@ ExtMove* MovePicker::score(const MoveList<Type>& ml) {
           pos.attacks_by<KNIGHT>(~us) | pos.attacks_by<BISHOP>(~us) | threatByLesser[KNIGHT];
         threatByLesser[QUEEN] = pos.attacks_by<ROOK>(~us) | threatByLesser[ROOK];
         threatByLesser[KING]  = 0;
+
+        // Rams: our pawns standing head to head with an enemy pawn. Two or more of
+        // them mean the structure is locked, so piece moves can only shuffle and the
+        // sole quiet way to make irreversible progress is a pawn lever.
+        Bitboard rams = pawn_single_push_bb(us, pos.pieces(us, PAWN)) & pos.pieces(~us, PAWN);
+        int      n    = popcount(rams);
+        leverBonus    = n >= 2 ? 4096 * (n > 4 ? 4 : n) : 0;
     }
 
     ExtMove* it = cur;
@@ -244,6 +252,11 @@ ExtMove* MovePicker::score(const MoveList<Type>& ml) {
             int v = 20 * (bool(threatByLesser[pt] & from) - bool(threatByLesser[pt] & to));
             m.value += PieceValue[pt] * v;
 
+            // bonus for a pawn lever in a locked structure: a push that makes contact
+            // with an enemy pawn. threatByLesser[KNIGHT] holds the squares attacked by
+            // enemy pawns, which are exactly the contact squares of our pawns.
+            if (leverBonus && pt == PAWN && (threatByLesser[KNIGHT] & to) && pos.see_ge(m, -111))
+                m.value += leverBonus;
 
             if (ply < LOW_PLY_HISTORY_SIZE)
                 m.value += 8 * (*lowPlyHistory)[ply][m.raw()] / (1 + ply);
