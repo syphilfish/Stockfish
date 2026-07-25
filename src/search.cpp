@@ -1094,6 +1094,10 @@ moves_loop:  // When in check, search starts here
       (ss - 1)->continuationHistory, (ss - 2)->continuationHistory, (ss - 3)->continuationHistory,
       (ss - 4)->continuationHistory, (ss - 5)->continuationHistory, (ss - 6)->continuationHistory};
 
+    // Plies searched in this line without an irreversible move. rule50_count() is
+    // reset by every capture and pawn move, so a counter at least as large as the
+    // ply distance means the line searched so far has been pure shuffling.
+    const int revPlies = std::min(pos.rule50_count(), ss->ply);
 
     MovePicker mp(pos, ttData.move, depth, &mainHistory, &lowPlyHistory, &captureHistory, contHist,
                   &sharedHistory, ss->ply);
@@ -1299,6 +1303,15 @@ moves_loop:  // When in check, search starts here
         r += 697;  // Base reduction offset to compensate for other tweaks
         r -= moveCount * 65;
         r -= std::abs(correctionValue) / 26310;
+
+        // Shuffling: inside a long reversible run a quiet non-pawn move keeps the
+        // position in the same transposition cluster, while a pawn move is the only
+        // quiet way to make irreversible progress. Skew the reduction accordingly.
+        if (!capture && revPlies > 10 && move.type_of() != CASTLING)
+        {
+            int stall = std::min(revPlies - 10, 12);
+            r += type_of(movedPiece) == PAWN ? -48 * stall : 64 * stall;
+        }
 
         // Increase reduction for cut nodes
         if (cutNode)
