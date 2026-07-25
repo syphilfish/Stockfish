@@ -267,7 +267,10 @@ Move MovePicker::select(Pred filter) {
 
     for (; cur < endCur; ++cur)
         if (*cur != ttMove && filter())
+        {
+            curValue = cur->value;
             return *cur++;
+        }
 
     return Move::none();
 }
@@ -322,6 +325,10 @@ top:
             endCur = endGenerated = score<QUIETS>(ml);
 
             partial_insertion_sort(cur, endCur, -3560 * depth);
+
+            // Best quiet ordering score, the reference every later quiet is
+            // compared against. cur points at the first generated quiet here.
+            topQuietValue = cur < endCur ? cur->value : 0;
         }
 
         ++stage;

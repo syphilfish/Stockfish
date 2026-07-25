@@ -50,6 +50,10 @@ class MovePicker {
     MovePicker(const Position&, Move, int, const CapturePieceToHistory*);
     Move next_move();
     void skip_quiet_moves();
+    // Ordering score of the move last returned by next_move(), and the best
+    // ordering score among the quiets generated at this node.
+    int current_value() const { return curValue; }
+    int top_quiet_value() const { return topQuietValue; }
 
    private:
     template<typename Pred>
@@ -67,6 +71,8 @@ class MovePicker {
     ExtMove *                    cur, *endCur, *endBadCaptures, *endCaptures, *endGenerated;
     int                          stage;
     int                          threshold;
+    int                          curValue      = 0;
+    int                          topQuietValue = 0;
     Depth                        depth;
     int                          ply;
     bool                         skipQuiets = false;

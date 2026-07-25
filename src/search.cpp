@@ -1300,6 +1300,17 @@ moves_loop:  // When in check, search starts here
         r -= moveCount * 65;
         r -= std::abs(correctionValue) / 26310;
 
+        // Move ordering rank answers "how many moves look better than this one",
+        // but the reduction needs "how much worse does this move look than the best
+        // alternative". Use the distance between this quiet's full ordering score
+        // (histories, pawn history, deep continuations, check and threat terms) and
+        // the best quiet's score, saturated so a typical gap is reduction neutral.
+        if (!capture && !ss->inCheck && move != ttData.move)
+        {
+            int gap = std::max(mp.top_quiet_value() - mp.current_value(), 0);
+            r += 768 * gap / (gap + 12000) - 384;
+        }
+
         // Increase reduction for cut nodes
         if (cutNode)
             r += 4026 + 933 * !ttData.move;
