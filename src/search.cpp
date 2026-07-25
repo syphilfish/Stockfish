@@ -1094,6 +1094,13 @@ moves_loop:  // When in check, search starts here
       (ss - 1)->continuationHistory, (ss - 2)->continuationHistory, (ss - 3)->continuationHistory,
       (ss - 4)->continuationHistory, (ss - 5)->continuationHistory, (ss - 6)->continuationHistory};
 
+    // A plateau line: not a single irreversible move has been played since the root
+    // (rule50_count() is reset by captures and pawn moves only), the fifty move
+    // counter is already high, and the transposition table confirms a near-draw
+    // verdict at comparable depth. Growing depth here only inflates a shuffle tree.
+    const bool plateau = !PvNode && ss->ply >= 8 && pos.rule50_count() >= ss->ply + 16
+                  && is_valid(ttData.value) && std::abs(ttData.value) <= 60
+                  && ttData.depth >= depth - 3;
 
     MovePicker mp(pos, ttData.move, depth, &mainHistory, &lowPlyHistory, &captureHistory, contHist,
                   &sharedHistory, ss->ply);
@@ -1248,8 +1255,9 @@ moves_loop:  // When in check, search starts here
                 int tripleMargin = 70 + 279 * PvNode - 188 * !ttCapture + 81 * ss->ttPv - corrValAdj
                                  - (ss->ply > rootDepth) * 43;
 
-                extension =
-                  1 + (value < singularBeta - doubleMargin) + (value < singularBeta - tripleMargin);
+                extension = 
+                  1 + !plateau * ((value < singularBeta - doubleMargin)
+                               + (value < singularBeta - tripleMargin));
 
                 depth++;
             }
@@ -1352,7 +1360,7 @@ moves_loop:  // When in check, search starts here
             {
                 // Adjust full-depth search based on LMR results - if the result was
                 // good enough search deeper, if it was bad enough search shallower.
-                const bool doDeeperSearch    = d < newDepth && value > bestValue + 53;
+                const bool doDeeperSearch    = d < newDepth && value > bestValue + 53 && !plateau;
                 const bool doShallowerSearch = value < bestValue + 8;
 
                 newDepth += doDeeperSearch - doShallowerSearch;
