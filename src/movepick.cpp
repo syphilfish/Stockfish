@@ -158,6 +158,7 @@ MovePicker::MovePicker(const Position&              p,
                        const CapturePieceToHistory* cph,
                        const PieceToHistory**       ch,
                        const SharedHistories*       sh,
+                       Move                          pom,
                        int                          pl) :
     pos(p),
     mainHistory(mh),
@@ -166,6 +167,7 @@ MovePicker::MovePicker(const Position&              p,
     continuationHistory(ch),
     sharedHistory(sh),
     ttMove(ttm),
+    previousOwnMove(pom),
     depth(d),
     ply(pl) {
 
@@ -182,6 +184,7 @@ MovePicker::MovePicker(const Position& p, Move ttm, int th, const CapturePieceTo
     pos(p),
     captureHistory(cph),
     ttMove(ttm),
+    previousOwnMove(Move::none()),
     threshold(th) {
     assert(!pos.checkers());
 
@@ -197,6 +200,15 @@ ExtMove* MovePicker::score(const MoveList<Type>& ml) {
     static_assert(Type == CAPTURES || Type == QUIETS || Type == EVASIONS, "Wrong type");
 
     Color us = pos.side_to_move();
+
+    [[maybe_unused]] bool shuffleContext = false;
+    if constexpr (Type == QUIETS)
+    {
+        shuffleContext = ply >= 20 && pos.rule50_count() >= 10
+                   && pos.state()->pliesFromNull >= 6 && previousOwnMove.is_ok()
+                   && previousOwnMove.type_of() == NORMAL;
+    }
+
 
     [[maybe_unused]] Bitboard threatByLesser[KING + 1];
     if constexpr (Type == QUIETS)
@@ -247,6 +259,12 @@ ExtMove* MovePicker::score(const MoveList<Type>& ml) {
 
             if (ply < LOW_PLY_HISTORY_SIZE)
                 m.value += 8 * (*lowPlyHistory)[ply][m.raw()] / (1 + ply);
+
+            // Delay an exact return in a long reversible sequence; never prune it.
+            if (shuffleContext && m.type_of() == NORMAL && type_of(pc) != PAWN
+                && from == previousOwnMove.to_sq() && to == previousOwnMove.from_sq()
+                && !pos.gives_check(m))
+                m.value -= 1024;
         }
 
         else  // Type == EVASIONS
