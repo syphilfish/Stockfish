@@ -1358,6 +1358,11 @@ moves_loop:  // When in check, search starts here
         // Decrease/increase reduction for moves with a good/bad history
         r -= ss->statScore * 439 / 4096;
 
+        // TT vs static gap: search replaced eval, so the node is non-quiet
+        // and late-move reductions are less trustworthy.
+        if (is_valid(eval) && is_valid(ss->staticEval) && !is_decisive(eval))
+            r -= std::min(960, std::abs(int(eval) - int(ss->staticEval)) * 4);
+
         // Scale up reductions for expected ALL nodes
         if (allNode)
             r += r * 276 / (256 * depth + 268);
