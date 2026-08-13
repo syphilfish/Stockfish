@@ -1228,7 +1228,10 @@ moves_loop:  // When in check, search starts here
                 // Futility pruning: parent node
                 // (*Scaler): Generally, more frequent futility pruning
                 // scales well
-                if (!ss->inCheck && lmrDepth < 12 && futilityValue <= alpha)
+                // Advanced pawn pushes are the break; eval often misses the race.
+                if (!ss->inCheck && lmrDepth < 12 && futilityValue <= alpha
+                && !(type_of(movedPiece) == PAWN
+                     && relative_rank(us, move.to_sq()) >= RANK_6))
                 {
                     if (bestValue <= futilityValue && !is_decisive(bestValue)
                         && !is_win(futilityValue))
