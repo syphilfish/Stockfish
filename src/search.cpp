@@ -1338,6 +1338,20 @@ moves_loop:  // When in check, search starts here
         if (ttCapture)
             r += 1079;
 
+        // As the 50-move clock advances, irreversible pawn moves keep depth
+        // and reversible piece tours give it back.
+        if (!capture && !ss->inCheck)
+        {
+            const int r50 = std::min(pos.rule50_count(), 24);
+            if (r50 >= 8)
+            {
+              if (type_of(movedPiece) == PAWN)
+                r -= 640 + 16 * r50;
+              else if (!givesCheck)
+                r += 480 + 12 * r50;
+            }
+        }
+
         // Increase reduction if next ply has a lot of fail high
         if ((ss + 1)->cutoffCnt > 1)
             r += 264 + 1095 * ((ss + 1)->cutoffCnt > 2) + 1138 * allNode;
