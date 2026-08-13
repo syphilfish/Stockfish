@@ -1531,8 +1531,12 @@ moves_loop:  // When in check, search starts here
                     break;
                 }
 
-                // Reduce other moves if we have found at least one score improvement
-                if (depth > 3 && depth < 12 && !is_decisive(value))
+                // Reduce other moves if we have found at least one score improvement.
+                // A reversible piece raise is not real progress: keep depth so a
+                // later pawn break can still outscore the shuffle.
+                if (depth > 3 && depth < 12 && !is_decisive(value)
+                  && (capture || type_of(movedPiece) == PAWN || givesCheck
+                  || pos.rule50_count() < 10))
                     depth -= 3;
 
                 assert(depth > 0);
