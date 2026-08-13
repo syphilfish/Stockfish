@@ -239,6 +239,10 @@ ExtMove* MovePicker::score(const MoveList<Type>& ml) {
             // bonus for checks
             m.value += ((pos.check_squares(pt) & to) && pos.see_ge(m, -75)) * 16384;
 
+            // Surface pawn breaks before piece tours as the 50-move clock advances
+            if (pt == PAWN)
+                m.value += 192 * std::min(pos.rule50_count(), 24);
+
             // penalty for moving to a square threatened by a lesser piece
             // or bonus for escaping an attack by a lesser piece.
             int v = 20 * (bool(threatByLesser[pt] & from) - bool(threatByLesser[pt] & to));
