@@ -1358,6 +1358,15 @@ moves_loop:  // When in check, search starts here
         // Decrease/increase reduction for moves with a good/bad history
         r -= ss->statScore * 439 / 4096;
 
+        // Exact same-side reversals cannot change structure; extra-reduce them
+        // so bounce trees do not consume the breakthrough budget.
+        if (!capture && !givesCheck && type_of(movedPiece) != PAWN && move != ttData.move
+        && pos.rule50_count() >= 6 && (ss - 1)->currentMove.is_ok()
+        && (ss - 2)->currentMove.is_ok()
+        && move.from_sq() == (ss - 2)->currentMove.to_sq()
+        && move.to_sq() == (ss - 2)->currentMove.from_sq())
+            r += 1280;
+
         // Scale up reductions for expected ALL nodes
         if (allNode)
             r += r * 276 / (256 * depth + 268);
