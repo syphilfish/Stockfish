@@ -761,6 +761,8 @@ Value Search::Worker::search(
     SearchedList capturesSearched;
     SearchedList quietsSearched;
 
+    bool bestMoveRepetition = false;
+
     // Step 1. Initialize node
     ss->inCheck   = pos.checkers();
     priorCapture  = pos.captured_piece();
@@ -1430,6 +1432,13 @@ moves_loop:  // When in check, search starts here
             value = -search<PV>(pos, ss + 1, -beta, -alpha, newDepth, false);
         }
 
+        // Record direct repetition evidence before restoring the parent.
+        // A path-dependent draw is not a portable correction-history label.
+        const bool moveRepetition =
+          !seekMate && !limits.mate && !capture && value >= alpha
+          && std::abs(value) <= 1 && pos.is_repetition(ss->ply + 1)
+          && pos.count<ALL_PIECES>() > 7;
+
         // Step 21. Undo move
         undo_move(pos, move);
 
@@ -1525,7 +1534,8 @@ moves_loop:  // When in check, search starts here
 
             if (value + inc > alpha)
             {
-                bestMove = move;
+                bestMove           = move;
+                bestMoveRepetition = moveRepetition;
 
                 // Update PV even in fail-high case
                 if (PvNode && !rootNode)
@@ -1636,7 +1646,8 @@ moves_loop:  // When in check, search starts here
 
     // Adjust correction history if the best move is not a capture and
     // the error direction matches whether we are above/below bounds.
-    if (!ss->inCheck && !(bestMove && pos.capture(bestMove))
+    // Do not generalize a selected immediate repetition to other paths.
+    if (!ss->inCheck && !bestMoveRepetition && !(bestMove && pos.capture(bestMove))
         && (bestValue > ss->staticEval) == bool(bestMove))
     {
         auto bonus =
