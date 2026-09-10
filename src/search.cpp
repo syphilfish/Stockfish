@@ -1694,6 +1694,8 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta)
     ss->inCheck = pos.checkers();
     moveCount   = 0;
 
+    int quietEvasions = 0;
+
     // Used to send selDepth info to GUI (selDepth counts from 1, ply from 0)
     if (PvNode && selDepth < ss->ply + 1)
         selDepth = ss->ply + 1;
@@ -1819,14 +1821,22 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta)
                 }
             }
 
-            // Skip non-captures
-            if (!capture)
+            // A capture evasion that narrowly fails low should not consume
+            // the entire quiet-evasion budget. Try at most one quiet reply,
+            // still subject to the existing SEE test.
+            if (!capture
+                && (PvNode || !ss->inCheck || quietEvasions != 0 || limits.mate
+                    || is_decisive(alpha) || is_decisive(beta) || bestValue < alpha - 96))
                 continue;
 
             // Do not search moves with bad enough SEE values
             if (!pos.see_ge(move, -74))
                 continue;
         }
+
+        // Count searched quiet evasions, not candidates rejected by SEE.
+        if (!capture)
+            ++quietEvasions;
 
         // Step 7. Make and search the move
         do_move(pos, move, st, givesCheck, ss);
