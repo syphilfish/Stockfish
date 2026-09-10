@@ -899,13 +899,31 @@ Value Search::Worker::search(
                 pos.do_move(ttData.move, st);
                 Key nextPosKey                             = pos.key();
                 auto [ttHitNext, ttDataNext, ttWriterNext] = tt.probe(nextPosKey);
+
+                const bool useBoundWitness =
+                  !seekMate && !limits.mate && !is_decisive(alpha) && !is_decisive(beta);
+
+                Value nextValue = ttDataNext.value;
+                if (useBoundWitness)
+                    nextValue = ttHitNext
+                                  ? value_from_tt(ttDataNext.value, ss->ply + 1,
+                                                  pos.rule50_count())
+                                  : VALUE_NONE;
+
+                // A child lower bound can contradict a parent fail-high;
+                // a child upper bound can contradict a parent fail-low.
+                const Bound conflictBound =
+                  ttData.value >= beta ? BOUND_LOWER : BOUND_UPPER;
+
                 pos.undo_move(ttData.move);
 
-                // Check that the ttValue after the tt move would also trigger a cutoff
-                if (!is_valid(ttDataNext.value))
+                if (!is_valid(nextValue))
                     return ttData.value;
 
-                if ((ttData.value >= beta) == (-ttDataNext.value >= beta))
+                // A numerical disagreement without the required bound
+                // direction does not establish a conflicting child result.
+                if ((useBoundWitness && !(ttDataNext.bound & conflictBound))
+                    || (ttData.value >= beta) == (-nextValue >= beta))
                     return ttData.value;
             }
             else
