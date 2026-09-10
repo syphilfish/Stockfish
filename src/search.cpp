@@ -1221,6 +1221,22 @@ moves_loop:  // When in check, search starts here
                 Value futilityValue =
                   ss->staticEval + 119 * lmrDepth + 90 * (ss->staticEval > alpha) + 164;
 
+                // Do not interpret cancellation between broad and local
+                // histories as confidence that a quiet move is futile.
+                if (!ss->inCheck && lmrDepth < 12 && !seekMate && !limits.mate
+                    && !is_decisive(alpha) && !is_decisive(beta))
+                {
+                    const int broadHistory = mainHistory[us][move.raw()];
+                    const int localSupport =
+                      std::min(int((*contHist[0])[movedPiece][move.to_sq()]),
+                               int((*contHist[1])[movedPiece][move.to_sq()]));
+
+                    if (broadHistory < -2048 && localSupport > 2048)
+                        futilityValue +=
+                          std::clamp((std::min(-broadHistory, localSupport) - 2048) / 32,
+                                     0, 64);
+                }
+
                 // Futility pruning: parent node
                 // (*Scaler): Generally, more frequent futility pruning scales well
                 if (!ss->inCheck && lmrDepth < 12 && futilityValue <= alpha)
