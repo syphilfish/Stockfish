@@ -1121,7 +1121,8 @@ moves_loop:  // When in check, search starts here
 
     value = bestValue;
 
-    int moveCount = 0;
+    int moveCount     = 0;
+    int quietSearches = 0;
 
     // Step 14. Loop through all pseudo-legal moves until no moves remain
     // or a beta cutoff occurs.
@@ -1369,6 +1370,15 @@ moves_loop:  // When in check, search starts here
         // Apply the computed LMR
         if (depth >= 2 && moveCount > 1)
         {
+            // Captures and pruned candidates can inflate moveCount before
+            // any quiet alternative has actually been tested.
+            if (!PvNode && !ss->ttPv && !ss->inCheck && !capture && !givesCheck
+                && ttCapture && quietSearches == 0 && moveCount > 2
+                && !excludedMove && !seekMate && !limits.mate
+                && !is_decisive(alpha) && !is_decisive(beta)
+                && is_valid(bestValue) && !is_decisive(bestValue) && r >= 1024)
+                r -= 512;
+
             // In general we want to cap the LMR depth search at newDepth, but when
             // reduction is negative, we allow this move a limited search extension
             // beyond the first move depth.
@@ -1432,6 +1442,9 @@ moves_loop:  // When in check, search starts here
 
         // Step 21. Undo move
         undo_move(pos, move);
+
+        if (!capture)
+            ++quietSearches;
 
         assert(value > -VALUE_INFINITE && value < VALUE_INFINITE);
 
