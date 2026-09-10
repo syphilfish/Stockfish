@@ -1386,7 +1386,18 @@ moves_loop:  // When in check, search starts here
             {
                 // Adjust full-depth search based on LMR results - if the result was
                 // good enough search deeper, if it was bad enough search shallower.
-                const bool doDeeperSearch    = d < newDepth && value > bestValue + 53;
+                Value deeperReference = bestValue;
+
+                // At an expected cut node, beating poor alternatives is not
+                // itself surprising. Require a meaningful gain over alpha
+                // before spending an additional verification ply.
+                if (cutNode && !ss->ttPv && !ss->inCheck && !capture && !givesCheck
+                    && !excludedMove && !seekMate && !limits.mate && depth >= 4
+                    && is_valid(bestValue) && !is_decisive(bestValue)
+                    && !is_decisive(alpha) && !is_decisive(beta) && !is_decisive(value))
+                    deeperReference = std::max(bestValue, alpha);
+
+                const bool doDeeperSearch    = d < newDepth && value > deeperReference + 53;
                 const bool doShallowerSearch = value < bestValue + 8;
 
                 newDepth += doDeeperSearch - doShallowerSearch;
