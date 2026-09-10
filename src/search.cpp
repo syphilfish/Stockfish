@@ -1121,7 +1121,8 @@ moves_loop:  // When in check, search starts here
 
     value = bestValue;
 
-    int moveCount = 0;
+    int moveCount               = 0;
+    int quietVerificationMisses = 0;
 
     // Step 14. Loop through all pseudo-legal moves until no moves remain
     // or a beta cutoff occurs.
@@ -1369,6 +1370,16 @@ moves_loop:  // When in check, search starts here
         // Apply the computed LMR
         if (depth >= 2 && moveCount > 1)
         {
+            // Positive history is less reassuring when this node's reduced
+            // quiet probes have already produced refuted fail-highs.
+            // Spend a little more on the initial probe instead of relying
+            // on another potentially misleading shallow result.
+            if (!PvNode && !ss->ttPv && !ss->inCheck && !capture && !givesCheck
+                && move != ttData.move && !excludedMove && !seekMate && !limits.mate
+                && !is_decisive(alpha) && !is_decisive(beta)
+                && ss->statScore > 0 && r >= 1024)
+                r -= 256 * quietVerificationMisses;
+
             // In general we want to cap the LMR depth search at newDepth, but when
             // reduction is negative, we allow this move a limited search extension
             // beyond the first move depth.
@@ -1391,8 +1402,15 @@ moves_loop:  // When in check, search starts here
 
                 newDepth += doDeeperSearch - doShallowerSearch;
 
+                const bool verifiedQuiet = !capture && !givesCheck && newDepth > d;
+
                 if (newDepth > d)
                     value = -search<NonPV>(pos, ss + 1, -(alpha + 1), -alpha, newDepth, !cutNode);
+
+                // Keep this evidence local: no history penalty and no
+                // inference about siblings beyond a bounded LMR adjustment.
+                if (verifiedQuiet && value <= alpha && !is_decisive(value))
+                    quietVerificationMisses = std::min(2, quietVerificationMisses + 1);
 
                 // Post LMR continuation history updates
                 update_continuation_histories(ss, movedPiece, move.to_sq(), 1334);
