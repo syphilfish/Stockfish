@@ -1386,8 +1386,13 @@ moves_loop:  // When in check, search starts here
             {
                 // Adjust full-depth search based on LMR results - if the result was
                 // good enough search deeper, if it was bad enough search shallower.
-                const bool doDeeperSearch    = d < newDepth && value > bestValue + 53;
-                const bool doShallowerSearch = value < bestValue + 8;
+                // Anchor the margins at the operative lower bound: until a move has
+                // been searched, bestValue is still the -VALUE_INFINITE sentinel, and
+                // only scores above alpha can ever be adopted anyway.
+                const Value refValue = std::max(bestValue, alpha);
+
+                const bool doDeeperSearch    = d < newDepth && value > refValue + 53;
+                const bool doShallowerSearch = value < refValue + 8;
 
                 newDepth += doDeeperSearch - doShallowerSearch;
 
