@@ -1004,6 +1004,21 @@ Value Search::Worker::search(
                              - (2789 * improving + 335 * opponentWorsening) * futilityMult / 1024
                              + std::abs(correctionValue) / 198435;
 
+        // A historically supported quiet move that appears to lose
+        // substantial static value is conflicting evidence, not an
+        // automatically trustworthy opponent blunder.
+        if (!seekMate && !limits.mate && !is_decisive(alpha) && !is_decisive(beta)
+            && !priorCapture && (ss - 1)->currentMove.is_ok()
+            && !(ss - 1)->inCheck && is_valid((ss - 1)->staticEval)
+            && (ss - 1)->statScore > 0)
+        {
+            const int apparentLoss = ss->staticEval + (ss - 1)->staticEval;
+            const int historySupport = std::clamp((ss - 1)->statScore / 64, 0, 64);
+
+            futilityMargin +=
+              std::min(historySupport, std::clamp((apparentLoss - 96) / 2, 0, 64));
+        }
+
         if (eval - futilityMargin >= beta)
             return (661 * beta + 363 * eval) / 1024;
     }
