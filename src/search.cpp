@@ -1391,11 +1391,19 @@ moves_loop:  // When in check, search starts here
 
                 newDepth += doDeeperSearch - doShallowerSearch;
 
-                if (newDepth > d)
+                const bool verified = newDepth > d;
+                if (verified)
                     value = -search<NonPV>(pos, ss + 1, -(alpha + 1), -alpha, newDepth, !cutNode);
 
-                // Post LMR continuation history updates
-                update_continuation_histories(ss, movedPiece, move.to_sq(), 1334);
+                // Credit the verified outcome, not merely the reduced
+                // probe's optimistic result. Unverified probes keep their
+                // existing bonus.
+                const bool refuted =
+                  verified && value <= alpha && !seekMate && !limits.mate
+                  && !is_decisive(alpha) && !is_decisive(beta) && !is_decisive(value);
+
+                const int bonus = refuted ? -std::min(512, 128 * (newDepth - d)) : 1334;
+                update_continuation_histories(ss, movedPiece, move.to_sq(), bonus);
             }
         }
 
