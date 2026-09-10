@@ -979,10 +979,27 @@ Value Search::Worker::search(
     // Use static evaluation difference to improve quiet move ordering
     if (((ss - 1)->currentMove).is_ok() && !(ss - 1)->inCheck && !priorCapture)
     {
-        int evalDiff = std::clamp(-int((ss - 1)->staticEval + ss->staticEval), -189, 194) + 60;
-        mainHistory[~us][((ss - 1)->currentMove).raw()] << evalDiff * 11;
+        const Move previous = (ss - 1)->currentMove;
+
+        // Do not accumulate baseline credit by undoing a quiet move without
+        // a meaningful evaluation change. Actual evaluation gains still count.
+        const bool flatReturn =
+          !seekMate && !limits.mate && !is_decisive(alpha) && !is_decisive(beta)
+          && ss->ply >= 3 && pos.rule50_count() >= 3
+          && pos.state()->pliesFromNull >= 3 && previous.type_of() == NORMAL
+          && !(ss - 2)->inCheck && !(ss - 3)->inCheck
+          && (ss - 3)->currentMove.is_ok()
+          && (ss - 3)->currentMove.type_of() == NORMAL
+          && previous.from_sq() == (ss - 3)->currentMove.to_sq()
+          && previous.to_sq() == (ss - 3)->currentMove.from_sq()
+          && std::abs((ss - 1)->staticEval + ss->staticEval) <= 32
+          && pos.count<ALL_PIECES>() > 7;
+
+        int evalDiff = std::clamp(-int((ss - 1)->staticEval + ss->staticEval), -189, 194)
+                     + (flatReturn ? 0 : 60);
+        mainHistory[~us][previous.raw()] << evalDiff * 11;
         if (!ttHit && type_of(pos.piece_on(prevSq)) != PAWN
-            && ((ss - 1)->currentMove).type_of() != PROMOTION)
+            && previous.type_of() != PROMOTION)
             sharedHistory.pawn_entry(pos)[pos.piece_on(prevSq)][prevSq] << evalDiff * 13;
     }
 
