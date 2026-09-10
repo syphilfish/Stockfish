@@ -1310,6 +1310,12 @@ moves_loop:  // When in check, search starts here
                 extension = -3;
         }
 
+        // Preserve the parent's pawn-structure context across do_move().
+        const int pawnContext =
+          !PvNode && !capture
+            ? int(sharedHistory.pawn_entry(pos)[movedPiece][move.to_sq()])
+            : 0;
+
         u64 nodeCount = rootNode ? u64(nodes) : 0;
 
         // Step 17. Make the move
@@ -1369,6 +1375,20 @@ moves_loop:  // When in check, search starts here
         // Apply the computed LMR
         if (depth >= 2 && moveCount > 1)
         {
+            // Structural disagreement is more informative than adding
+            // another unconditional history term to the reduction.
+            if (!PvNode && !ss->inCheck && !capture && !givesCheck
+                && move != ttData.move && !excludedMove && !seekMate && !limits.mate
+                && !is_decisive(alpha) && !is_decisive(beta) && r >= 1024)
+            {
+                const int globalHistory = mainHistory[us][move.raw()];
+
+                if (globalHistory > 1024 && pawnContext < -1024)
+                    r += std::min(512, (-pawnContext - 1024) / 8);
+                else if (globalHistory < -1024 && pawnContext > 1024)
+                    r -= std::min(512, (pawnContext - 1024) / 8);
+            }
+
             // In general we want to cap the LMR depth search at newDepth, but when
             // reduction is negative, we allow this move a limited search extension
             // beyond the first move depth.
