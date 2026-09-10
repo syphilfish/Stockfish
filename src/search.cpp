@@ -997,6 +997,17 @@ Value Search::Worker::search(
     if (!ss->ttPv && depth < (seekMate ? 6 : 19) && eval >= beta && (!ttData.move || ttCapture)
         && !is_loss(beta) && !is_win(eval))
     {
+        Value futilityEval = eval;
+
+        // A shallow tactical gain is useful evidence, but its full size
+        // should not be extrapolated to a much deeper pruning decision.
+        if (!seekMate && !limits.mate && eval > ss->staticEval && ttData.depth < depth)
+        {
+            const int coveredDepth = std::clamp(int(ttData.depth), 0, int(depth));
+            futilityEval -=
+              (eval - ss->staticEval) * (depth - coveredDepth) / (2 * depth);
+        }
+
         Value futilityMult = std::min(45 + depth * 4, 85);
         futilityMult -= 20 * !ss->ttHit;
 
@@ -1004,8 +1015,10 @@ Value Search::Worker::search(
                              - (2789 * improving + 335 * opponentWorsening) * futilityMult / 1024
                              + std::abs(correctionValue) / 198435;
 
-        if (eval - futilityMargin >= beta)
-            return (661 * beta + 363 * eval) / 1024;
+        // The margin can be negative, so retain an explicit cutoff floor
+        // for the discounted estimate and its returned softbound.
+        if (futilityEval >= beta && futilityEval - futilityMargin >= beta)
+            return (661 * beta + 363 * futilityEval) / 1024;
     }
 
     // Step 10. Null move search with verification search
