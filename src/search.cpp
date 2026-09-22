@@ -1657,7 +1657,16 @@ moves_loop:  // When in check, search starts here
         auto bonus =
           std::clamp(int(bestValue - ss->staticEval) * depth * (bestMove ? 12 : 18) / 128,
                      -CORRECTION_HISTORY_LIMIT / 4, CORRECTION_HISTORY_LIMIT / 4);
-        update_correction_history(pos, ss, *this, 1061 * bonus / 1024);
+
+    // Fuse the prior TT verdict: an informative TT bound on the same side of
+    // staticEval confirms the error direction, an opposite one contradicts it.
+    int scale = 1061;
+    if (is_valid(ttData.value) && !is_decisive(ttData.value) && ttData.value != ss->staticEval
+        && ttData.depth >= depth - 3
+        && (ttData.bound & (ttData.value > ss->staticEval ? BOUND_LOWER : BOUND_UPPER)))
+        scale += (ttData.value > ss->staticEval) == (bestValue > ss->staticEval) ? 96 : -224;
+
+        update_correction_history(pos, ss, *this, scale * bonus / 1024);
     }
 
     // The search is now complete
