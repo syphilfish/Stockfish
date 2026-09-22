@@ -1139,6 +1139,12 @@ moves_loop:  // When in check, search starts here
 
     int moveCount = 0;
 
+    // Disagreement between TT-verified eval and static eval (non-zero only
+    // when an informative TT bound overrode staticEval): a volatility signal.
+    const int ttEvalGap = (ss->inCheck || excludedMove || is_decisive(eval))
+                      ? 0
+                      : std::min(std::abs(eval - ss->staticEval), 200);
+
     // Step 14. Loop through all pseudo-legal moves until no moves remain
     // or a beta cutoff occurs.
     while ((move = mp.next_move()) != Move::none())
@@ -1345,6 +1351,7 @@ moves_loop:  // When in check, search starts here
 
         r -= moveCount * 65;
         r -= std::abs(correctionValue) / 26310;
+        r -= ttEvalGap * 2;
 
         // Increase reduction for cut nodes
         if (cutNode)
