@@ -1008,6 +1008,18 @@ Value Search::Worker::search(
     if (allNode && eval < alpha - 342 * depth && !seekMate)
         return qsearch<NonPV>(pos, ss, alpha, beta);
 
+    // Verified razoring for hopeless-looking expected cut nodes
+    if (cutNode && depth <= 3 && !ss->ttPv && !excludedMove && !seekMate
+    && eval < alpha - 256 - 342 * depth)
+    {
+        const bool savedTtHit = ss->ttHit;
+        value                 = qsearch<NonPV>(pos, ss, alpha, beta);
+        ss->ttHit             = savedTtHit;
+
+    if (value <= alpha && !is_decisive(value))
+        return value;
+    }
+
     // Step 9. Futility pruning: child node
     // The depth condition is important for mate finding. It should NOT be tuned.
     if (!ss->ttPv && depth < (seekMate ? 6 : 19) && eval >= beta && (!ttData.move || ttCapture)
