@@ -1377,6 +1377,11 @@ moves_loop:  // When in check, search starts here
         if (!capture && !is_decisive(alpha))
             r += 3 * std::clamp(alpha - eval, -64, 96);
 
+        // Searched-score gap: the further the best move so far is below alpha, the less
+        // likely a later move rises above it. Range -256..+768 (under 1 ply), roughly centered.
+        if (!PvNode && moveCount > 1 && !is_decisive(alpha) && !is_decisive(bestValue))
+            r += 4 * (std::clamp(int(alpha - bestValue), 0, 256) - 64);
+
         // Scale up reductions for expected ALL nodes
         if (allNode)
             r += r * 276 / (256 * depth + 268);
