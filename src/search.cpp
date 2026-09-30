@@ -1325,6 +1325,12 @@ moves_loop:  // When in check, search starts here
                 extension = -3;
         }
 
+        // Pawn history must be read before the move is made (it is keyed on the pawn
+        // structure of the current position). Only needed for LMR-eligible quiet moves.
+        int pawnHist = 0;
+        if (!capture && moveCount > 1 && depth >= 2)
+            pawnHist = sharedHistory.pawn_entry(pos)[movedPiece][move.to_sq()];
+
         u64 nodeCount = rootNode ? u64(nodes) : 0;
 
         // Step 17. Make the move
@@ -1373,6 +1379,9 @@ moves_loop:  // When in check, search starts here
 
         // Decrease/increase reduction for moves with a good/bad history
         r -= ss->statScore * 439 / 4096;
+
+        // Pawn-structure history term, clamped to at most ~0.67 ply
+        r -= std::clamp(pawnHist, -8192, 8192) / 12;
 
         if (!capture && !is_decisive(alpha))
             r += 3 * std::clamp(alpha - eval, -64, 96);
