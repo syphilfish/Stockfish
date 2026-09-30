@@ -1178,7 +1178,15 @@ moves_loop:  // When in check, search starts here
 
         int delta = beta - alpha;
 
-        int r = reduction(improving, depth, moveCount, delta);
+        // In check, ss->staticEval is copied from (ss - 2), so 'improving' is always false.
+        // For the reduction only, use the trend of the last two non-check evaluations.
+        // Both values are validated (sentinels are VALUE_NONE); unchanged when not in check.
+        const bool lmrImproving =
+            improving
+            || (ss->inCheck && is_valid((ss - 2)->staticEval) && is_valid((ss - 4)->staticEval)
+            && (ss - 2)->staticEval > (ss - 4)->staticEval);
+
+        int r = reduction(lmrImproving, depth, moveCount, delta);
 
         // Increase reduction for ttPv nodes
         // (*Scaler) Larger values scale well.
