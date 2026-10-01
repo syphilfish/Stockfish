@@ -1367,6 +1367,11 @@ moves_loop:  // When in check, search starts here
         else if (move == ttData.move)
             r -= 2179;
 
+        // Children refuted by null move return before cutoffCnt is updated. Count them
+        // as well: the earlier moves of this node were refuted cheaply. Max +768 (under 1 ply).
+        if ((ss + 1)->priorNMPFailHigh > 1 && move != ttData.move)
+            r += 256 + 768 * ((ss + 1)->priorNMPFailHigh > 3);
+
         if (capture)
             ss->statScore = 873 * int(PieceValue[pos.captured_piece()]) / 128
                           + captureHistory[movedPiece][move.to_sq()][type_of(pos.captured_piece())];
