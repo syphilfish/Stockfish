@@ -70,8 +70,15 @@ struct StatsEntry {
     void operator<<(int bonus) {
         // Make sure that bonus is in range [-D, D]
         int clampedBonus = std::clamp(bonus, -D, D);
+        int absBonus     = std::abs(clampedBonus);
         T   val          = *this;
-        *this            = val + clampedBonus - val * std::abs(clampedBonus) / D;
+        int term         = clampedBonus - val * absBonus / D;
+
+        // Confidence-weighted damping: x/4 for fresh entries up to x/2 for saturated ones
+        term -= int(std::int64_t(term) * absBonus * (D + std::abs(int(val)))
+                    / (std::int64_t(4) * D * D));
+
+        *this = val + term;
 
         assert(std::abs(T(*this)) <= D);
     }
