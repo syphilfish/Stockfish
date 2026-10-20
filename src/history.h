@@ -70,8 +70,15 @@ struct StatsEntry {
     void operator<<(int bonus) {
         // Make sure that bonus is in range [-D, D]
         int clampedBonus = std::clamp(bonus, -D, D);
-        T   val          = *this;
-        *this            = val + clampedBonus - val * std::abs(clampedBonus) / D;
+
+        // Treat the entry as a mean with pseudo-count D and the bonus as |bonus|
+        // observations of +-D. The effective learning rate becomes |b| / (D + |b|)
+        // instead of |b| / D, so large updates no longer overwrite prior evidence
+        // (exact weighted mean, bounded since |clampedBonus| only shrinks).
+        clampedBonus = clampedBonus * D / (D + std::abs(clampedBonus));
+
+        T val = *this;
+        *this = val + clampedBonus - val * std::abs(clampedBonus) / D;
 
         assert(std::abs(T(*this)) <= D);
     }
