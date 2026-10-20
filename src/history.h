@@ -71,7 +71,15 @@ struct StatsEntry {
         // Make sure that bonus is in range [-D, D]
         int clampedBonus = std::clamp(bonus, -D, D);
         T   val          = *this;
-        *this            = val + clampedBonus - val * std::abs(clampedBonus) / D;
+
+        // Evidence-weighted hysteresis: a malus hitting an entry with accumulated
+        // positive evidence is damped by up to 50% at saturation, so proven-good
+        // moves are demoted gradually while bad moves can still redeem at full
+        // speed. The malus keeps its sign and never grows, so bounds are preserved.
+        if (clampedBonus < 0 && val > 0)
+          clampedBonus -= clampedBonus * val / (2 * D);
+
+        *this = val + clampedBonus - val * std::abs(clampedBonus) / D;
 
         assert(std::abs(T(*this)) <= D);
     }
