@@ -2064,7 +2064,7 @@ void update_continuation_histories(Stack* ss, Piece pc, Square to, int bonus) {
             if (historyEntry > 0)
                 positiveCount++;
 
-            int multiplier = CMHCMultipliers[positiveCount];
+            int multiplier = bonus > 0 ? CMHCMultipliers[positiveCount] : CMHCMultipliers[0];
             historyEntry << bonus * weight * multiplier / 65536 + 73 * (i < 2);
         }
     }
