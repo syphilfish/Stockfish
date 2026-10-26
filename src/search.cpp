@@ -1435,8 +1435,9 @@ moves_loop:  // When in check, search starts here
                 r += 1127;
 
             // If expected reduction is high, we reduce search depth here
+            const bool reduceTwice = r > 5487 && newDepth > 2 && (seekMate || priorReduction < 2);
             value = -search<NonPV>(pos, ss + 1, -(alpha + 1), -alpha,
-                                   newDepth - (r > 5234) - (r > 5487 && newDepth > 2), !cutNode);
+                                   newDepth - (r > 5234) - reduceTwice, !cutNode);
         }
 
         // Step 20. For PV nodes only, do a full PV search on the first move
