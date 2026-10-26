@@ -1388,7 +1388,7 @@ moves_loop:  // When in check, search starts here
 
         // Scale up reductions for expected ALL nodes
         if (allNode)
-            r += r * 276 / (256 * depth + 268);
+            r += (seekMate ? r : std::abs(r)) * 276 / (256 * depth + 268);
 
         // When seeking a mate, reduce non-checking moves more and checking moves less
         if (seekMate && r > 0)
