@@ -775,6 +775,7 @@ Value Search::Worker::search(
     Value bestValue, value, eval, maxValue, probCutBeta;
     bool  givesCheck, improving, priorCapture, opponentWorsening;
     bool  capture, ttCapture;
+    bool  ttValueUsed = false;
     int   priorReduction;
     Piece movedPiece;
 
@@ -863,7 +864,10 @@ Value Search::Worker::search(
         // ttValue can be used as a better position evaluation
         if (is_valid(ttData.value)
             && (ttData.bound & (ttData.value > eval ? BOUND_LOWER : BOUND_UPPER)))
-            eval = ttData.value;
+        {
+            eval        = ttData.value;
+            ttValueUsed = true;
+        }
     }
     else
     {
@@ -1352,7 +1356,8 @@ moves_loop:  // When in check, search starts here
         r += 697;
 
         r -= moveCount * 65;
-        r -= std::abs(correctionValue) / 26310;
+        if (!ttValueUsed)
+            r -= std::abs(correctionValue) / 26310;
 
         // Increase reduction for cut nodes
         if (cutNode)
