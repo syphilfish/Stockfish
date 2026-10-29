@@ -1567,7 +1567,8 @@ moves_loop:  // When in check, search starts here
                 }
 
                 // Reduce other moves if we have found at least one score improvement
-                if (depth > 3 && depth < 12 && !is_decisive(value))
+                if (depth > 3 && depth < 12 && !is_decisive(value)
+                  && (!ttData.move || move == ttData.move))
                     depth -= 3;
 
                 assert(depth > 0);
