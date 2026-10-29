@@ -1382,7 +1382,7 @@ moves_loop:  // When in check, search starts here
         // Decrease/increase reduction for moves with a good/bad history
         r -= ss->statScore * 439 / 4096;
 
-        if (!capture && !is_decisive(alpha))
+        if (!capture && !ss->inCheck && !is_decisive(alpha))
             r += 3 * std::clamp(alpha - eval, -64, 96);
 
         // Scale up reductions for expected ALL nodes
